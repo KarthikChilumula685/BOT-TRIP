@@ -139,10 +139,11 @@ Render's free services may have request-size and timeout constraints. For large 
 
 ## Validation
 
-Contributors Praneeth Reddy Katkuri https://github.com/PRANEETH2611
-
 ```bash
 npm run check
 ```
 
 This lints and builds the frontend and syntax-checks the backend entry point.
+
+
+Contributors Praneeth Reddy Katkuri https://github.com/PRANEETH2611
