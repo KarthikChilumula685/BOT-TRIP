@@ -30,15 +30,30 @@ export default function Gallery() {
     (item) => item._id === selected?._id,
   );
   const previous = useCallback(() => {
+    if (!memories.length) return;
+
     setSelected((current) => {
       const index = memories.findIndex((item) => item._id === current?._id);
-      return memories[(index - 1 + memories.length) % memories.length];
+
+      if (index === -1) return memories[0];
+
+      const previousIndex = index === 0 ? memories.length - 1 : index - 1;
+
+      return memories[previousIndex];
     });
   }, [memories]);
+
   const next = useCallback(() => {
+    if (!memories.length) return;
+
     setSelected((current) => {
       const index = memories.findIndex((item) => item._id === current?._id);
-      return memories[(index + 1) % memories.length];
+
+      if (index === -1) return memories[0];
+
+      const nextIndex = index === memories.length - 1 ? 0 : index + 1;
+
+      return memories[nextIndex];
     });
   }, [memories]);
 

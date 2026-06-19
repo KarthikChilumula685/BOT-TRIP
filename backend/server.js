@@ -14,6 +14,8 @@ import userRoutes from "./routes/userRoutes.js";
 const app = express();
 const port = process.env.PORT || 5000;
 
+console.log("ENV CHECK:", process.env.MONGO_URI);
+
 app.set("trust proxy", 1);
 app.use(
   helmet({

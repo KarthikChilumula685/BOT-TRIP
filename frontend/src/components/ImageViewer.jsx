@@ -403,6 +403,7 @@ export default function ImageViewer({
                       className="
         text-xs
         font-bold
+        text-gray-900
         "
                     >
                       {item.user?.name}
@@ -456,11 +457,14 @@ export default function ImageViewer({
               onChange={(e) => setComment(e.target.value)}
               placeholder="Write a memory..."
               className="
-        flex-1
+         flex-1
         rounded-full
         bg-gray-100
         px-5
         outline-none
+
+        text-black
+        placeholder:text-gray-400
         "
             />
 

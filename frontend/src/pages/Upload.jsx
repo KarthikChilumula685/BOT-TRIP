@@ -93,7 +93,10 @@ export default function Upload() {
 
       toast.success(`${data.memories.length} memories stored`);
 
-      navigate("/gallery");
+      navigate("/gallery", {
+        replace: true,
+        state: { refresh: true },
+      });
     } catch (error) {
       toast.error(getErrorMessage(error));
     } finally {

@@ -116,7 +116,7 @@ mb-2
 block
 text-sm
 font-medium
-text-gray-600
+text-gray-900
 "
           >
             Password
@@ -145,6 +145,8 @@ shadow
 outline-none
 border
 border-gray-100
+text-black
+placeholder:text-gray-400
 focus:ring-2
 focus:ring-orange-200
 "
@@ -211,7 +213,7 @@ bg-cover
 bg-center
 "
       style={{
-        backgroundImage: "url('/auth-bg.jpg')",
+        backgroundImage: "url('/landing-bg.jpg')",
       }}
     >
       {/* background */}
@@ -298,7 +300,7 @@ lg:block
 "
           >
             <img
-              src="/auth-bg.jpg"
+              src="/landing-bg.jpg"
               className="
 absolute
 inset-0

@@ -1,29 +1,31 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+
 import api from "../services/api";
 
 export default function useProtectedMedia(memoryId) {
-  const [url, setUrl] = useState("");
-  const [loading, setLoading] = useState(Boolean(memoryId));
-  const [error, setError] = useState(false);
+  const {
+    data: url,
 
-  useEffect(() => {
-    if (!memoryId) return undefined;
-    const controller = new AbortController();
+    isLoading,
 
-    setLoading(true);
-    setError(false);
-    api
-      .get(`/memories/${memoryId}/media-token`, { signal: controller.signal })
-      .then(({ data }) => setUrl(data.url))
-      .catch((requestError) => {
-        if (requestError.code !== "ERR_CANCELED") setError(true);
-      })
-      .finally(() => setLoading(false));
+    isError,
+  } = useQuery({
+    queryKey: ["memory-media", memoryId],
 
-    return () => {
-      controller.abort();
-    };
-  }, [memoryId]);
+    queryFn: async () => {
+      const { data } = await api.get(`/memories/${memoryId}/media-token`);
 
-  return { url, loading, error };
+      return data.url;
+    },
+
+    enabled: !!memoryId,
+  });
+
+  return {
+    url: url || "",
+
+    loading: isLoading,
+
+    error: isError,
+  };
 }
