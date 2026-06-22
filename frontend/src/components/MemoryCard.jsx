@@ -1,5 +1,5 @@
 import { Heart, MapPin, Play, Clock, CheckCircle, AlertCircle, Edit2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { format } from "date-fns";
 import { useState } from "react";
 
@@ -349,13 +349,15 @@ text-orange-400
         </div>
       )}
 
-      {showEditDialog && (
-        <EditMemoryDialog
-          memory={memory}
-          onClose={() => setShowEditDialog(false)}
-          onUpdate={onUpdate}
-        />
-      )}
+      <AnimatePresence>
+        {showEditDialog && (
+          <EditMemoryDialog
+            memory={memory}
+            onClose={() => setShowEditDialog(false)}
+            onUpdate={onUpdate}
+          />
+        )}
+      </AnimatePresence>
     </motion.article>
   );
 }
