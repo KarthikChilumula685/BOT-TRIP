@@ -292,27 +292,6 @@ ${liked ? "bg-pink-500 text-white" : "bg-white/85 text-gray-600"}
         </button>
         </div>
 
-      {memory.likes?.length > 0 && (
-        <div className="px-5 pb-4">
-          <div className="flex flex-wrap gap-1.5">
-            {memory.likes.slice(0, 5).map((likeUser) => (
-              <div
-                key={likeUser._id}
-                className="flex items-center gap-1 bg-gray-50 rounded-full px-2 py-1"
-              >
-                <Avatar user={likeUser} size="sm" />
-                <span className="text-[10px] text-gray-600">{likeUser.name}</span>
-              </div>
-            ))}
-            {memory.likes.length > 5 && (
-              <span className="text-[10px] text-gray-400 px-2 py-1">
-                +{memory.likes.length - 5} more
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* CAPTION AREA */}
 
       {(memory.title || memory.caption || memory.location) && (

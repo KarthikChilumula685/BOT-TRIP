@@ -176,7 +176,6 @@ export async function getMemories(req, res, next) {
     let query = Memory.find(filter)
       .populate("uploadedBy", "name profileImage")
       .populate("comments.user", "name profileImage")
-      .populate("likes", "name profileImage")
       .sort({ memoryDate: sortOrder, createdAt: sortOrder })
       .skip((safePage - 1) * safeLimit)
       .limit(safeLimit);
@@ -223,6 +222,7 @@ export async function toggleLike(req, res, next) {
     else memory.likes.push(req.user._id);
     await memory.save();
 
+    // Populate likes with user data
     await memory.populate("likes", "name profileImage");
 
     res.json({
