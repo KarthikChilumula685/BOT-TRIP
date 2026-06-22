@@ -1,5 +1,21 @@
 import mongoose from "mongoose";
 
+const reactionSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
+    },
+    type: {
+      type: String,
+      required: true,
+      enum: ["like", "love", "laugh", "wow", "sad", "fire"]
+    }
+  },
+  { _id: false }
+);
+
 const commentSchema = new mongoose.Schema(
   {
     user: {
@@ -12,7 +28,13 @@ const commentSchema = new mongoose.Schema(
       required: true,
       trim: true,
       maxlength: 500
-    }
+    },
+    parentComment: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Comment",
+      default: null
+    },
+    reactions: [reactionSchema]
   },
   { timestamps: true }
 );

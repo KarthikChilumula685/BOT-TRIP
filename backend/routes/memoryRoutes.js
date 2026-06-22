@@ -1,11 +1,13 @@
 import { Router } from "express";
 import {
   addComment,
+  addReaction,
   createMediaToken,
   deleteMemory,
   downloadMemory,
   getMemories,
   getMemory,
+  removeReaction,
   streamMedia,
   streamThumbnail,
   toggleLike,
@@ -28,6 +30,8 @@ router.get("/:id", getMemory);
 router.put("/:id", updateMemory);
 router.put("/:id/like", toggleLike);
 router.post("/:id/comment", addComment);
+router.post("/:id/reaction", addReaction);
+router.delete("/:id/reaction", removeReaction);
 router.delete("/:id", deleteMemory);
 
 export default router;

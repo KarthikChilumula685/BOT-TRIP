@@ -176,6 +176,7 @@ export async function getMemories(req, res, next) {
     let query = Memory.find(filter)
       .populate("uploadedBy", "name profileImage")
       .populate("comments.user", "name profileImage")
+      .populate("comments.reactions.user", "name profileImage")
       .populate("likes", "name profileImage")
       .sort({ memoryDate: sortOrder, createdAt: sortOrder })
       .skip((safePage - 1) * safeLimit)
@@ -205,6 +206,7 @@ export async function getMemory(req, res, next) {
     const memory = await Memory.findById(req.params.id)
       .populate("uploadedBy", "name profileImage")
       .populate("comments.user", "name profileImage")
+      .populate("comments.reactions.user", "name profileImage")
       .populate("likes", "name profileImage");
     if (!memory) return res.status(404).json({ message: "Memory not found" });
     res.json({ memory: serializeMemory(memory, req) });
@@ -244,12 +246,80 @@ export async function addComment(req, res, next) {
     const memory = await Memory.findById(req.params.id);
     if (!memory) return res.status(404).json({ message: "Memory not found" });
 
-    memory.comments.push({ user: req.user._id, text });
+    const parentCommentId = req.body.parentComment || null;
+    memory.comments.push({ user: req.user._id, text, parentComment: parentCommentId });
     await memory.save();
     await memory.populate("comments.user", "name profileImage");
+    await memory.populate("comments.reactions.user", "name profileImage");
 
     res.status(201).json({
       comment: memory.comments.at(-1),
+      comments: memory.comments
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function addReaction(req, res, next) {
+  try {
+    const { commentId, type } = req.body;
+    if (!commentId || !type) {
+      return res.status(400).json({ message: "Comment ID and reaction type are required" });
+    }
+
+    const validTypes = ["like", "love", "laugh", "wow", "sad", "fire"];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({ message: "Invalid reaction type" });
+    }
+
+    const memory = await Memory.findById(req.params.id);
+    if (!memory) return res.status(404).json({ message: "Memory not found" });
+
+    const comment = memory.comments.id(commentId);
+    if (!comment) return res.status(404).json({ message: "Comment not found" });
+
+    // Remove existing reaction from this user if any
+    comment.reactions = comment.reactions.filter(
+      (r) => !r.user.equals(req.user._id)
+    );
+
+    // Add new reaction
+    comment.reactions.push({ user: req.user._id, type });
+    await memory.save();
+    await memory.populate("comments.reactions.user", "name profileImage");
+
+    res.json({
+      comment: memory.comments.id(commentId),
+      comments: memory.comments
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function removeReaction(req, res, next) {
+  try {
+    const { commentId } = req.body;
+    if (!commentId) {
+      return res.status(400).json({ message: "Comment ID is required" });
+    }
+
+    const memory = await Memory.findById(req.params.id);
+    if (!memory) return res.status(404).json({ message: "Memory not found" });
+
+    const comment = memory.comments.id(commentId);
+    if (!comment) return res.status(404).json({ message: "Comment not found" });
+
+    // Remove reaction from this user
+    comment.reactions = comment.reactions.filter(
+      (r) => !r.user.equals(req.user._id)
+    );
+    await memory.save();
+    await memory.populate("comments.reactions.user", "name profileImage");
+
+    res.json({
+      comment: memory.comments.id(commentId),
       comments: memory.comments
     });
   } catch (error) {
