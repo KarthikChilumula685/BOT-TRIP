@@ -176,6 +176,7 @@ export async function getMemories(req, res, next) {
     let query = Memory.find(filter)
       .populate("uploadedBy", "name profileImage")
       .populate("comments.user", "name profileImage")
+      .populate("likes", "name profileImage")
       .sort({ memoryDate: sortOrder, createdAt: sortOrder })
       .skip((safePage - 1) * safeLimit)
       .limit(safeLimit);
@@ -203,7 +204,8 @@ export async function getMemory(req, res, next) {
   try {
     const memory = await Memory.findById(req.params.id)
       .populate("uploadedBy", "name profileImage")
-      .populate("comments.user", "name profileImage");
+      .populate("comments.user", "name profileImage")
+      .populate("likes", "name profileImage");
     if (!memory) return res.status(404).json({ message: "Memory not found" });
     res.json({ memory: serializeMemory(memory, req) });
   } catch (error) {
@@ -220,6 +222,8 @@ export async function toggleLike(req, res, next) {
     if (index >= 0) memory.likes.splice(index, 1);
     else memory.likes.push(req.user._id);
     await memory.save();
+
+    await memory.populate("likes", "name profileImage");
 
     res.json({
       liked: index < 0,

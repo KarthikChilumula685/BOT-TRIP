@@ -386,6 +386,23 @@ export default function ImageViewer({
               {memory.likes?.length || 0}
             </button>
 
+            {memory.likes?.length > 0 && (
+              <div className="col-span-3 mt-2">
+                <p className="text-xs text-gray-500 mb-2">Liked by:</p>
+                <div className="flex flex-wrap gap-2">
+                  {memory.likes.map((likeUser) => (
+                    <div
+                      key={likeUser._id}
+                      className="flex items-center gap-1.5 bg-gray-50 rounded-full px-3 py-1"
+                    >
+                      <Avatar user={likeUser} size="sm" />
+                      <span className="text-xs text-gray-700">{likeUser.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <button
               onClick={handleDownload}
               className="
