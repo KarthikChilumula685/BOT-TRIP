@@ -176,6 +176,7 @@ export async function getMemories(req, res, next) {
     let query = Memory.find(filter)
       .populate("uploadedBy", "name profileImage")
       .populate("comments.user", "name profileImage")
+      .populate("likes", "name profileImage")
       .sort({ memoryDate: sortOrder, createdAt: sortOrder })
       .skip((safePage - 1) * safeLimit)
       .limit(safeLimit);
