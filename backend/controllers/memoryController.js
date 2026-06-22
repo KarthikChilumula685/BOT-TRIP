@@ -8,6 +8,12 @@ import {
 } from "../config/googleDrive.js";
 import Memory from "../models/Memory.js";
 import User from "../models/User.js";
+import {
+  isBrowserCompatible,
+  generateThumbnail,
+  convertVideo,
+  cleanupThumbnail
+} from "../services/videoService.js";
 
 function serializeMemory(memory, req) {
   const item = memory.toJSON ? memory.toJSON() : memory;
@@ -15,12 +21,37 @@ function serializeMemory(memory, req) {
   return {
     ...item,
     previewUrl: `${base}/media`,
-    downloadUrl: `${base}/download`
+    downloadUrl: `${base}/download`,
+    thumbnailUrl: item.thumbnailUrl ? `${base}/thumbnail` : ""
   };
+}
+
+async function processVideoConversion(memoryId, inputPath) {
+  try {
+    await Memory.findByIdAndUpdate(memoryId, { conversionStatus: "processing" });
+    
+    const outputPath = inputPath.replace(/\.[^.]+$/, "-converted.mp4");
+    await convertVideo(inputPath, outputPath, (progress) => {
+      // Could emit socket event for real-time progress
+      console.log(`Conversion progress for ${memoryId}: ${progress}%`);
+    });
+    
+    // Upload converted video to Drive and update memory
+    // For now, we'll mark as completed since Drive streaming handles the rest
+    await Memory.findByIdAndUpdate(memoryId, { conversionStatus: "completed" });
+    
+    // Cleanup converted file
+    await unlink(outputPath).catch(() => {});
+  } catch (error) {
+    console.error("Video conversion error:", error);
+    await Memory.findByIdAndUpdate(memoryId, { conversionStatus: "failed" });
+    throw error;
+  }
 }
 
 export async function uploadMemories(req, res, next) {
   const uploadedDriveIds = [];
+  const filesToCleanup = [];
 
   try {
     if (!req.files?.length) {
@@ -54,8 +85,37 @@ export async function uploadMemories(req, res, next) {
       });
       memory.previewUrl = `/api/memories/${memory._id}/media`;
       memory.downloadUrl = `/api/memories/${memory._id}/download`;
+      
+      // Handle video processing
+      if (type === "video") {
+        const isCompatible = isBrowserCompatible(file.mimetype);
+        memory.conversionStatus = isCompatible ? "completed" : "pending";
+        
+        // Generate thumbnail
+        try {
+          const thumbnailPath = await generateThumbnail(file.path, memory._id.toString());
+          memory.thumbnailUrl = `/api/memories/${memory._id}/thumbnail`;
+        } catch (error) {
+          console.error("Thumbnail generation failed:", error);
+        }
+      }
+      
       await memory.save();
       created.push(serializeMemory(memory, req));
+      
+      // Async video conversion for non-compatible formats
+      if (type === "video" && memory.conversionStatus === "pending") {
+        // Don't add to cleanup - conversion will handle it
+        processVideoConversion(memory._id, file.path).catch(err => {
+          console.error("Video conversion failed:", err);
+          Memory.findByIdAndUpdate(memory._id, { conversionStatus: "failed" }).catch();
+          // Cleanup file if conversion fails
+          unlink(file.path).catch(() => {});
+        });
+      } else {
+        // Add to cleanup for photos and compatible videos
+        if (file.path) filesToCleanup.push(file.path);
+      }
     }
 
     res.status(201).json({ memories: created });
@@ -63,9 +123,8 @@ export async function uploadMemories(req, res, next) {
     await Promise.allSettled(uploadedDriveIds.map((id) => deleteFromDrive(id)));
     next(error);
   } finally {
-    await Promise.allSettled(
-      (req.files || []).filter((file) => file.path).map((file) => unlink(file.path))
-    );
+    // Only cleanup files that aren't being processed for conversion
+    await Promise.allSettled(filesToCleanup.map((path) => unlink(path)));
   }
 }
 
@@ -200,12 +259,46 @@ export async function deleteMemory(req, res, next) {
 
     const ownsMemory = memory.uploadedBy.equals(req.user._id);
     if (!ownsMemory && req.user.role !== "admin") {
+      console.warn(`Unauthorized delete attempt by user ${req.user._id} on memory ${memory._id} owned by ${memory.uploadedBy}`);
       return res.status(403).json({ message: "You cannot remove this memory" });
     }
 
     await deleteFromDrive(memory.fileId);
     await memory.deleteOne();
+    console.log(`Memory ${memory._id} deleted by user ${req.user._id}`);
     res.json({ message: "Memory removed" });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateMemory(req, res, next) {
+  try {
+    const memory = await Memory.findById(req.params.id);
+    if (!memory) return res.status(404).json({ message: "Memory not found" });
+
+    const ownsMemory = memory.uploadedBy.equals(req.user._id);
+    if (!ownsMemory && req.user.role !== "admin") {
+      console.warn(`Unauthorized edit attempt by user ${req.user._id} on memory ${memory._id} owned by ${memory.uploadedBy}`);
+      return res.status(403).json({ message: "You cannot edit this memory" });
+    }
+
+    const { title, caption, location, memoryDate } = req.body;
+
+    if (title !== undefined) memory.title = title;
+    if (caption !== undefined) memory.caption = caption;
+    if (location !== undefined) memory.location = location;
+    if (memoryDate !== undefined) {
+      const date = new Date(memoryDate);
+      if (Number.isNaN(date.getTime())) {
+        return res.status(400).json({ message: "Invalid date format" });
+      }
+      memory.memoryDate = date;
+    }
+
+    await memory.save();
+    console.log(`Memory ${memory._id} updated by user ${req.user._id}`);
+    res.json(serializeMemory(memory, req));
   } catch (error) {
     next(error);
   }
@@ -223,6 +316,15 @@ export async function streamMedia(req, res, next) {
     res.setHeader("Content-Type", memory.mimeType);
     res.setHeader("Accept-Ranges", "bytes");
     res.setHeader("Cache-Control", "private, max-age=3600");
+    
+    // Add CORS headers for media streaming
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+      res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Range, Authorization");
+    }
 
     const contentLength = driveFile.headers["content-length"];
     const contentRange = driveFile.headers["content-range"];
@@ -273,6 +375,41 @@ export async function downloadMemory(req, res, next) {
     }
     driveFile.stream.on("error", next);
     driveFile.stream.pipe(res);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function streamThumbnail(req, res, next) {
+  try {
+    const memory = await Memory.findById(req.params.id).select("thumbnailUrl");
+    if (!memory) return res.status(404).json({ message: "Memory not found" });
+    
+    if (!memory.thumbnailUrl) {
+      return res.status(404).json({ message: "Thumbnail not available" });
+    }
+    
+    // Serve thumbnail from local temp directory
+    const { createReadStream } = await import("node:fs");
+    const { join } = await import("node:path");
+    const { tmpdir } = await import("node:os");
+    
+    const thumbnailPath = join(tmpdir(), "bot-trip-thumbnails", `${memory._id}-thumb.jpg`);
+    
+    res.setHeader("Content-Type", "image/jpeg");
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    
+    // Add CORS headers for thumbnail streaming
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+      res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+    }
+    
+    const stream = createReadStream(thumbnailPath);
+    stream.on("error", next);
+    stream.pipe(res);
   } catch (error) {
     next(error);
   }

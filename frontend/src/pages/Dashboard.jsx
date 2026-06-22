@@ -19,7 +19,7 @@ import api, { getErrorMessage } from "../services/api";
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { memories, loading, updateMemory } = useMemories({ limit: 6 });
+  const { memories, loading, updateMemory, reload } = useMemories({ limit: 6 });
 
   const tripName = import.meta.env.VITE_TRIP_NAME || "Our Trip";
 
@@ -34,6 +34,12 @@ export default function Dashboard() {
     } catch (error) {
       toast.error(getErrorMessage(error));
     }
+  }
+
+  function handleUpdate(memory) {
+    updateMemory(memory);
+    // Reload memories to ensure proper sorting if date was changed
+    reload();
   }
 
   const stats = [
@@ -275,6 +281,7 @@ export default function Dashboard() {
                 memory={memory}
                 onClick={() => {}}
                 onLike={handleLike}
+                onUpdate={handleUpdate}
               />
             ))}
           </div>

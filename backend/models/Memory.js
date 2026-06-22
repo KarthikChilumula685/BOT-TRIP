@@ -31,6 +31,16 @@ const memorySchema = new mongoose.Schema(
       required: true,
       index: true
     },
+    conversionStatus: {
+      type: String,
+      enum: ["pending", "processing", "completed", "failed"],
+      default: "completed"
+    },
+    thumbnailUrl: {
+      type: String,
+      default: ""
+    },
+    title: { type: String, trim: true, maxlength: 100, default: "" },
     caption: { type: String, trim: true, maxlength: 300, default: "" },
     location: { type: String, trim: true, maxlength: 120, default: "" },
     tripName: { type: String, trim: true, maxlength: 120, default: "" },

@@ -15,7 +15,7 @@ import { useNavigate } from "react-router-dom";
 import api, { getErrorMessage } from "../services/api";
 
 const acceptedTypes =
-  "image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,video/mp4,video/webm,video/quicktime,video/x-m4v";
+  "image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,video/mp4,video/webm,video/quicktime,video/x-m4v,video/avi,video/mov,video/wmv,video/flv,video/mkv";
 
 export default function Upload() {
   const [files, setFiles] = useState([]);
@@ -384,6 +384,8 @@ p-4
 
 text-gray-900
 
+placeholder:text-gray-400
+
 outline-none
 "
               />
@@ -429,6 +431,8 @@ bg-gray-50
 py-3 pl-11
 
 text-gray-900
+
+placeholder:text-gray-400
 
 outline-none
 "

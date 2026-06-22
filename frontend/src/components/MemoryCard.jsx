@@ -1,15 +1,18 @@
-import { Heart, MapPin, Play } from "lucide-react";
+import { Heart, MapPin, Play, Clock, CheckCircle, AlertCircle, Edit2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
+import { useState } from "react";
 
 import { useAuth } from "../context/AuthContext";
 import useProtectedMedia from "../hooks/useProtectedMedia";
 
 import Avatar from "./Avatar";
+import EditMemoryDialog from "./EditMemoryDialog";
 import Loader from "./Loader";
 
-export default function MemoryCard({ memory, onClick, onLike }) {
+export default function MemoryCard({ memory, onClick, onLike, onUpdate }) {
   const { user } = useAuth();
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   const {
     url,
@@ -102,8 +105,9 @@ transition
 duration-700
 group-hover:scale-105
 "
-                muted
+                controls
                 preload="metadata"
+                crossOrigin="anonymous"
               />
 
               <div
@@ -124,6 +128,54 @@ text-orange-500
               >
                 <Play size={18} fill="currentColor" />
               </div>
+
+              {memory.conversionStatus === "processing" && (
+                <div
+                  className="
+absolute
+right-4
+top-4
+flex
+items-center
+gap-1.5
+rounded-full
+bg-blue-500/90
+px-3
+py-1.5
+text-xs
+font-semibold
+text-white
+backdrop-blur
+"
+                >
+                  <Clock size={12} className="animate-spin" />
+                  Processing
+                </div>
+              )}
+
+              {memory.conversionStatus === "failed" && (
+                <div
+                  className="
+absolute
+right-4
+top-4
+flex
+items-center
+gap-1.5
+rounded-full
+bg-red-500/90
+px-3
+py-1.5
+text-xs
+font-semibold
+text-white
+backdrop-blur
+"
+                >
+                  <AlertCircle size={12} />
+                  Failed
+                </div>
+              )}
             </div>
           ) : (
             <img
@@ -140,6 +192,7 @@ group-hover:scale-105
 "
             />
           ))}
+      </button>
 
         {/* floating uploader */}
 
@@ -189,19 +242,25 @@ text-gray-400
 
         {/* LIKE */}
 
-        <button
-          onClick={(event) => {
-            event.stopPropagation();
+        <div className="absolute right-4 bottom-4 flex items-center gap-2">
+          {(memory.uploadedBy._id === user._id || user.role === "admin") && (
+            <button
+              onClick={(event) => {
+                event.stopPropagation();
+                setShowEditDialog(true);
+              }}
+              className="flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-2 text-xs shadow backdrop-blur hover:bg-white transition-colors"
+            >
+              <Edit2 size={14} />
+            </button>
+          )}
 
-            onLike(memory);
-          }}
-          className={`
-
-absolute
-
-right-4
-
-bottom-4
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              onLike(memory);
+            }}
+            className={`
 
 flex
 
@@ -231,11 +290,11 @@ ${liked ? "bg-pink-500 text-white" : "bg-white/85 text-gray-600"}
 
           {memory.likes?.length || 0}
         </button>
-      </button>
+        </div>
 
       {/* CAPTION AREA */}
 
-      {(memory.caption || memory.location) && (
+      {(memory.title || memory.caption || memory.location) && (
         <div
           className="
 space-y-3
@@ -243,6 +302,17 @@ px-5
 py-4
 "
         >
+          {memory.title && (
+            <h3
+              className="
+font-semibold
+text-gray-900
+line-clamp-1
+"
+            >
+              {memory.title}
+            </h3>
+          )}
           {memory.caption && (
             <p
               className="
@@ -277,6 +347,14 @@ text-orange-400
             </p>
           )}
         </div>
+      )}
+
+      {showEditDialog && (
+        <EditMemoryDialog
+          memory={memory}
+          onClose={() => setShowEditDialog(false)}
+          onUpdate={onUpdate}
+        />
       )}
     </motion.article>
   );

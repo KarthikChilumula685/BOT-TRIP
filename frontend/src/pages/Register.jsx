@@ -99,7 +99,8 @@ border-gray-100
 bg-white
 px-12
 py-3.5
-text-gray-700
+text-gray-900
+placeholder:text-gray-400
 shadow
 outline-none
 focus:ring-2

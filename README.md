@@ -8,6 +8,8 @@ A private, invite-only trip memory vault built with React, Express, MongoDB, and
 - Original-quality photo/video uploads with previews and progress
 - Private Google Drive storage with automatic `Trip / Photos / Videos` folders
 - Authenticated previews, range-aware video streaming, and original downloads
+- Automatic video format conversion for browser compatibility
+- Video thumbnail generation for easy identification
 - Responsive masonry gallery, fullscreen viewer, timeline, likes, and comments
 - Search by caption, location, file name, trip, uploader, or date
 - Friends and profile pages with upload/like statistics

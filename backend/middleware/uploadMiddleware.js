@@ -16,7 +16,12 @@ const allowedMimeTypes = new Set([
   "video/mp4",
   "video/webm",
   "video/quicktime",
-  "video/x-m4v"
+  "video/x-m4v",
+  "video/avi",
+  "video/mov",
+  "video/wmv",
+  "video/flv",
+  "video/mkv"
 ]);
 
 export const upload = multer({

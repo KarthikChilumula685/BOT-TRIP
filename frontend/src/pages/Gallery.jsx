@@ -1,6 +1,6 @@
 import { Search, SlidersHorizontal, X } from "lucide-react";
-import { useCallback, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useCallback, useState, useEffect } from "react";
+import { useSearchParams, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import EmptyState from "../components/EmptyState";
 import ImageViewer from "../components/ImageViewer";
@@ -11,19 +11,29 @@ import api, { getErrorMessage } from "../services/api";
 
 export default function Gallery() {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const uploader = searchParams.get("uploader") || "";
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
   const [type, setType] = useState("");
   const [sort, setSort] = useState("newest");
   const [selected, setSelected] = useState(null);
-  const { memories, loading, updateMemory, removeMemory } = useMemories({
+  const { memories, loading, updateMemory, removeMemory, reload } = useMemories({
     search: query,
     type,
     sort,
     uploader,
     limit: 100,
   });
+
+  // Reload memories when navigating from upload with refresh state
+  useEffect(() => {
+    if (location.state?.refresh) {
+      reload();
+      // Clear the refresh state to prevent multiple reloads
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state?.refresh, reload]);
 
   const closeViewer = useCallback(() => setSelected(null), []);
   const selectedIndex = memories.findIndex(
@@ -60,6 +70,8 @@ export default function Gallery() {
   function handleUpdate(memory) {
     updateMemory(memory);
     setSelected(memory);
+    // Reload memories to ensure proper sorting if date was changed
+    reload();
   }
 
   async function handleLike(memory) {
@@ -178,7 +190,8 @@ export default function Gallery() {
             pr-12
             shadow
             outline-none
-            text-gray-700
+            text-gray-900
+            placeholder:text-gray-400
             "
             />
 
@@ -311,6 +324,7 @@ export default function Gallery() {
               memory={memory}
               onClick={setSelected}
               onLike={handleLike}
+              onUpdate={handleUpdate}
             />
           ))}
         </div>

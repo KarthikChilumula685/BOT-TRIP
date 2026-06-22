@@ -26,6 +26,7 @@ export default function Timeline() {
     updateMemory,
 
     removeMemory,
+    reload,
   } = useMemories({
     sort: "oldest",
 
@@ -79,6 +80,13 @@ export default function Timeline() {
     } catch (error) {
       toast.error(getErrorMessage(error));
     }
+  }
+
+  function handleUpdate(memory) {
+    updateMemory(memory);
+    setSelected(memory);
+    // Reload memories to ensure proper sorting if date was changed
+    reload();
   }
 
   const selectedIndex = memories.findIndex(
@@ -290,6 +298,7 @@ masonry
                         memory={memory}
                         onClick={setSelected}
                         onLike={like}
+                        onUpdate={handleUpdate}
                       />
                     ))}
                   </div>
@@ -317,11 +326,7 @@ masonry
           onNext={() =>
             setSelected(memories[(selectedIndex + 1) % memories.length])
           }
-          onUpdate={(memory) => {
-            updateMemory(memory);
-
-            setSelected(memory);
-          }}
+          onUpdate={handleUpdate}
           onDelete={remove}
         />
       )}

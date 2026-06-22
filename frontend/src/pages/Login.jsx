@@ -103,6 +103,8 @@ shadow
 outline-none
 border
 border-gray-100
+text-gray-900
+placeholder:text-gray-400
 focus:ring-2
 focus:ring-orange-200
 "

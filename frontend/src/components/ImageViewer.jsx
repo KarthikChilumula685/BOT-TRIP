@@ -2,6 +2,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  Edit2,
   Heart,
   MapPin,
   MessageCircle,
@@ -17,6 +18,7 @@ import { useAuth } from "../context/AuthContext";
 import useProtectedMedia from "../hooks/useProtectedMedia";
 import api, { downloadMemory, getErrorMessage } from "../services/api";
 import Avatar from "./Avatar";
+import EditMemoryDialog from "./EditMemoryDialog";
 import Loader from "./Loader";
 
 export default function ImageViewer({
@@ -31,6 +33,7 @@ export default function ImageViewer({
   const { url, loading } = useProtectedMedia(memory?._id);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const liked = memory?.likes?.some(
     (id) => (typeof id === "string" ? id : id._id) === user._id,
   );
@@ -90,6 +93,7 @@ export default function ImageViewer({
     user.role === "admin" || memory.uploadedBy?._id === user._id;
 
   return (
+    <>
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
@@ -186,6 +190,8 @@ export default function ImageViewer({
           max-w-full
           rounded-xl
           "
+                controlsList="nodownload"
+                crossOrigin="anonymous"
               />
             ) : (
               <motion.img
@@ -279,12 +285,27 @@ export default function ImageViewer({
             )}
           </div>
 
+          {/* TITLE */}
+
+          {memory.title && (
+            <h3
+              className="
+        mt-6
+        text-xl
+        font-bold
+        text-gray-900
+        "
+            >
+              {memory.title}
+            </h3>
+          )}
+
           {/* CAPTION */}
 
           {memory.caption && (
             <p
               className="
-        mt-6
+        mt-4
         rounded-3xl
         bg-white
         p-4
@@ -322,10 +343,29 @@ export default function ImageViewer({
             className="
         my-6
         grid
-        grid-cols-2
+        grid-cols-3
         gap-3
         "
           >
+            {(memory.uploadedBy._id === user._id || user.role === "admin") && (
+              <button
+                onClick={() => setShowEditDialog(true)}
+                className="
+        rounded-full
+        bg-white
+        py-3
+        shadow
+        flex
+        justify-center
+        gap-2
+        text-gray-600
+        "
+              >
+                <Edit2 />
+                Edit
+              </button>
+            )}
+
             <button
               onClick={handleLike}
               className={`
@@ -463,7 +503,7 @@ export default function ImageViewer({
         px-5
         outline-none
 
-        text-black
+        text-gray-900
         placeholder:text-gray-400
         "
             />
@@ -486,5 +526,14 @@ export default function ImageViewer({
         </aside>
       </motion.div>
     </AnimatePresence>
+
+    {showEditDialog && (
+      <EditMemoryDialog
+        memory={memory}
+        onClose={() => setShowEditDialog(false)}
+        onUpdate={onUpdate}
+      />
+    )}
+    </>
   );
 }

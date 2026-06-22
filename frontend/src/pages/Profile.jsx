@@ -361,6 +361,7 @@ bg-gray-50
 px-5
 py-3
 outline-none
+text-gray-900
 focus:ring-2
 focus:ring-orange-200
 "
@@ -399,6 +400,8 @@ bg-gray-50
 px-5
 py-3
 outline-none
+text-gray-900
+placeholder:text-gray-400
 focus:ring-2
 focus:ring-orange-200
 "
