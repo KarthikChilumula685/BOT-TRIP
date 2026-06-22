@@ -106,6 +106,7 @@ duration-700
 group-hover:scale-105
 "
                 controls
+                playsInline
                 preload="metadata"
                 crossOrigin="anonymous"
               />

@@ -242,6 +242,7 @@ export default function ImageViewer({
                 src={url}
                 controls
                 autoPlay
+                playsInline
                 className="
           max-h-full
           max-w-full
