@@ -407,22 +407,28 @@ export default function ImageViewer({
           {/* LIKED BY USERS */}
           {memory.likes && memory.likes.length > 0 && (
             <div className="mt-4">
-              <p className="text-sm font-semibold text-gray-700 mb-3">
-                Liked by
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {memory.likes.map((likeUser) => (
-                  <div
-                    key={likeUser._id || likeUser}
-                    className="flex items-center gap-2 bg-gray-50 rounded-full px-3 py-1.5"
-                  >
-                    <Avatar user={likeUser} size="sm" />
-                    <span className="text-sm text-gray-700">
+              <p className="text-sm text-gray-600">
+                <span className="font-semibold text-gray-700">{memory.likes.length} Likes</span>
+                {" • Liked by: "}
+                {memory.likes.length <= 5 ? (
+                  memory.likes.map((likeUser, index) => (
+                    <span key={likeUser._id || likeUser} className="text-gray-700">
+                      {index > 0 && ", "}
                       {likeUser.name || 'User'}
                     </span>
-                  </div>
-                ))}
-              </div>
+                  ))
+                ) : (
+                  <>
+                    {memory.likes.slice(0, 5).map((likeUser, index) => (
+                      <span key={likeUser._id || likeUser} className="text-gray-700">
+                        {index > 0 && ", "}
+                        {likeUser.name || 'User'}
+                      </span>
+                    ))}
+                    <span className="text-gray-700"> and {memory.likes.length - 5} more</span>
+                  </>
+                )}
+              </p>
             </div>
           )}
 
