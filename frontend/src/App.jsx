@@ -10,6 +10,7 @@ import Profile from "./pages/Profile";
 import Register from "./pages/Register";
 import Timeline from "./pages/Timeline";
 import Upload from "./pages/Upload";
+import UserMemories from "./pages/UserMemories";
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="/timeline" element={<Timeline />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/user-memories" element={<UserMemories />} />
         </Route>
       </Route>
 

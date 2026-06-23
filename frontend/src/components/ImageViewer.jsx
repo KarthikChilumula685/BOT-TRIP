@@ -775,15 +775,13 @@ export default function ImageViewer({
       </motion.div>
     </AnimatePresence>
 
-    <AnimatePresence>
-      {showEditDialog && (
-        <EditMemoryDialog
-          memory={memory}
-          onClose={() => setShowEditDialog(false)}
-          onUpdate={onUpdate}
-        />
-      )}
-    </AnimatePresence>
+    {showEditDialog && (
+      <EditMemoryDialog
+        memory={memory}
+        onClose={() => setShowEditDialog(false)}
+        onUpdate={onUpdate}
+      />
+    )}
     </>
   );
 }

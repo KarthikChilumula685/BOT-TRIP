@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Camera, ShieldCheck, Trash2, UsersRound, Heart } from "lucide-react";
+import { Camera, ShieldCheck, Trash2, UsersRound, Heart, Images } from "lucide-react";
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -224,7 +224,7 @@ text-orange-500
                 </div>
 
                 <Link
-                  to={`/gallery?uploader=${user._id}`}
+                  to={`/user-memories?userId=${user._id}`}
                   className="
 mt-5
 flex
@@ -242,7 +242,7 @@ transition
 "
                 >
                   View Memories
-                  <Heart size={15} />
+                  <Images size={15} />
                 </Link>
 
                 {currentUser.role === "admin" &&

@@ -30,6 +30,16 @@ export async function getUsers(_req, res, next) {
   }
 }
 
+export async function getUserById(req, res, next) {
+  try {
+    const user = await User.findById(req.params.id).select("name email profileImage role createdAt");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json({ user });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function deleteUser(req, res, next) {
   try {
     if (req.params.id === req.user.id) {

@@ -350,15 +350,13 @@ text-orange-400
         </div>
       )}
 
-      <AnimatePresence>
-        {showEditDialog && (
-          <EditMemoryDialog
-            memory={memory}
-            onClose={() => setShowEditDialog(false)}
-            onUpdate={onUpdate}
-          />
-        )}
-      </AnimatePresence>
+      {showEditDialog && (
+        <EditMemoryDialog
+          memory={memory}
+          onClose={() => setShowEditDialog(false)}
+          onUpdate={onUpdate}
+        />
+      )}
     </motion.article>
   );
 }

@@ -1,14 +1,15 @@
 import { format } from "date-fns";
 
-import { Camera, Heart, Images, Save, ShieldCheck, Sparkles } from "lucide-react";
+import { Camera, Heart, Save, ShieldCheck, Sparkles, Images } from "lucide-react";
 
 import { useEffect, useState } from "react";
+
+import { useNavigate } from "react-router-dom";
 
 import toast from "react-hot-toast";
 
 import Avatar from "../components/Avatar";
 import Loader from "../components/Loader";
-import MemoryCard from "../components/MemoryCard";
 
 import { useAuth } from "../context/AuthContext";
 
@@ -16,11 +17,9 @@ import api, { getErrorMessage } from "../services/api";
 
 export default function Profile() {
   const { user, setUser } = useAuth();
+  const navigate = useNavigate();
 
   const [stats, setStats] = useState(null);
-  const [memories, setMemories] = useState([]);
-  const [loadingMemories, setLoadingMemories] = useState(false);
-  const [activeTab, setActiveTab] = useState("edit"); // 'edit' or 'memories'
 
   const [form, setForm] = useState({
     name: user.name,
@@ -38,17 +37,6 @@ export default function Profile() {
 
       .catch((error) => toast.error(getErrorMessage(error)));
   }, []);
-
-  useEffect(() => {
-    if (activeTab === "memories") {
-      setLoadingMemories(true);
-      api
-        .get("/memories?uploader=" + user._id)
-        .then(({ data }) => setMemories(data.memories || []))
-        .catch((error) => toast.error(getErrorMessage(error)))
-        .finally(() => setLoadingMemories(false));
-    }
-  }, [activeTab, user._id]);
 
   async function save(event) {
     event.preventDefault();
@@ -303,11 +291,38 @@ text-gray-500
               </div>
             </div>
           )}
+
+          <button
+            onClick={() => navigate(`/user-memories?userId=${user._id}`)}
+            className="
+mt-6
+flex
+items-center
+justify-center
+gap-2
+w-full
+rounded-full
+bg-gradient-to-r
+from-orange-500
+to-pink-500
+px-6
+py-3
+font-semibold
+text-white
+shadow-md
+hover:scale-105
+transition
+"
+          >
+            <Images size={18} />
+            View My Memories
+          </button>
         </aside>
 
-        {/* TABS AND CONTENT */}
+        {/* EDIT FORM */}
 
-        <div
+        <form
+          onSubmit={save}
           className="
 rounded-[2rem]
 bg-white
@@ -317,114 +332,56 @@ border
 border-gray-100
 "
         >
-          {/* TABS */}
-          <div
+          <h2
             className="
-flex
-gap-2
-border-b
-border-gray-100
-pb-4
-mb-6
-"
-          >
-            <button
-              onClick={() => setActiveTab("edit")}
-              className={`
-flex
-items-center
-gap-2
-px-4
-py-2
-rounded-full
-font-medium
-transition
-${
-  activeTab === "edit"
-    ? "bg-orange-500 text-white"
-    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-}
-`}
-            >
-              <Save size={16} />
-              Edit Profile
-            </button>
-            <button
-              onClick={() => setActiveTab("memories")}
-              className={`
-flex
-items-center
-gap-2
-px-4
-py-2
-rounded-full
-font-medium
-transition
-${
-  activeTab === "memories"
-    ? "bg-orange-500 text-white"
-    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-}
-`}
-            >
-              <Images size={16} />
-              My Memories
-            </button>
-          </div>
-
-          {/* EDIT FORM TAB */}
-          {activeTab === "edit" && (
-            <form onSubmit={save}>
-              <h2
-                className="
 font-display
 text-2xl
 font-bold
 text-gray-900
 "
-              >
-                Edit your details
-              </h2>
+          >
+            Edit your details
+          </h2>
 
-              <p
-                className="
+          <p
+            className="
 mt-2
 text-gray-500
 "
-              >
-                This is how your friends see you beside every memory 📸
-              </p>
+          >
+            This is how your friends see you beside every memory 📸
+          </p>
 
-              <div
-                className="
+          <div
+            className="
 mt-8
 space-y-6
 "
-              >
-                <label className="block">
-                  <span
-                    className="
+          >
+            <label className="block">
+              <span
+                className="
 mb-2
 block
 text-sm
 text-gray-600
 "
-                  >
-                    Display name
-                  </span>
+              >
+                Display name
+              </span>
 
-                  <input
-                    value={form.name}
-                    required
-                    maxLength={60}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
+              <input
+                value={form.name}
+                required
+                maxLength={60}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
 
-                        name: e.target.value,
-                      })
-                    }
-                    className="
+                    name: e.target.value,
+                  })
+                }
+                className="
 w-full
 rounded-full
 border
@@ -437,33 +394,33 @@ text-gray-900
 focus:ring-2
 focus:ring-orange-200
 "
-                  />
-                </label>
+              />
+            </label>
 
-                <label>
-                  <span
-                    className="
+            <label>
+              <span
+                className="
 mb-2
 block
 text-sm
 text-gray-600
 "
-                  >
-                    Profile photo URL
-                  </span>
+              >
+                Profile photo URL
+              </span>
 
-                  <input
-                    type="url"
-                    value={form.profileImage}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
+              <input
+                type="url"
+                value={form.profileImage}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
 
-                        profileImage: e.target.value,
-                      })
-                    }
-                    placeholder="https://..."
-                    className="
+                    profileImage: e.target.value,
+                  })
+                }
+                placeholder="https://..."
+                className="
 w-full
 rounded-full
 border
@@ -477,23 +434,23 @@ placeholder:text-gray-400
 focus:ring-2
 focus:ring-orange-200
 "
-                  />
+              />
 
-                  <p
-                    className="
+              <p
+                className="
 mt-2
 text-xs
 text-gray-400
 "
-                  >
-                    Leave empty to use your initial avatar.
-                  </p>
-                </label>
-              </div>
+              >
+                Leave empty to use your initial avatar.
+              </p>
+            </label>
+          </div>
 
-              <button
-                disabled={saving}
-                className="
+          <button
+            disabled={saving}
+            className="
 mt-8
 flex
 items-center
@@ -509,83 +466,12 @@ hover:scale-105
 transition
 disabled:opacity-60
 "
-              >
-                <Save size={16} />
+          >
+            <Save size={16} />
 
-                {saving ? "Saving..." : "Save Profile"}
-              </button>
-            </form>
-          )}
-
-          {/* MEMORIES TAB */}
-          {activeTab === "memories" && (
-            <div>
-              <h2
-                className="
-font-display
-text-2xl
-font-bold
-text-gray-900
-"
-              >
-                My Memories
-              </h2>
-
-              <p
-                className="
-mt-2
-text-gray-500
-"
-              >
-                All the memories you've shared with the trip 📸
-              </p>
-
-              {loadingMemories ? (
-                <Loader label="Loading your memories" />
-              ) : memories.length === 0 ? (
-                <div
-                  className="
-mt-8
-text-center
-py-12
-text-gray-400
-"
-                >
-                  <Images size={48} className="mx-auto mb-4 opacity-50" />
-                  <p>No memories yet. Start uploading!</p>
-                </div>
-              ) : (
-                <div
-                  className="
-mt-8
-grid
-grid-cols-1
-sm:grid-cols-2
-lg:grid-cols-3
-gap-4
-"
-                >
-                  {memories.map((memory) => (
-                    <MemoryCard
-                      key={memory._id}
-                      memory={memory}
-                      onUpdate={(updatedMemory) => {
-                        setMemories(
-                          memories.map((m) =>
-                            m._id === updatedMemory._id ? updatedMemory : m
-                          )
-                        );
-                      }}
-                      onDelete={(deletedId) => {
-                        setMemories(memories.filter((m) => m._id !== deletedId));
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+            {saving ? "Saving..." : "Save Profile"}
+          </button>
+        </form>
       </div>
     </div>
   );
