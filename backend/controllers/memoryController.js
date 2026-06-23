@@ -535,13 +535,48 @@ export async function updateMemory(req, res, next) {
 }
 
 export async function streamMedia(req, res, next) {
+  const streamStart = Date.now();
+  const memoryId = req.params.id;
+  const range = req.headers.range;
+  
+  console.log("[VIDEO DEBUG] Media stream request received", {
+    memoryId,
+    range,
+    headers: {
+      'user-agent': req.headers['user-agent'],
+      'referer': req.headers['referer'],
+      'origin': req.headers['origin'],
+      'range': range
+    },
+    timestamp: new Date().toISOString()
+  });
+
   try {
     const memory = await Memory.findById(req.params.id).select(
       "fileId fileName mimeType fileSize"
     );
-    if (!memory) return res.status(404).json({ message: "Memory not found" });
+    
+    if (!memory) {
+      console.error("[VIDEO DEBUG] Memory not found", { memoryId });
+      return res.status(404).json({ message: "Memory not found" });
+    }
+
+    console.log("[VIDEO DEBUG] Memory found", {
+      memoryId,
+      fileName: memory.fileName,
+      mimeType: memory.mimeType,
+      fileSize: memory.fileSize
+    });
 
     const driveFile = await getDriveFileStream(memory.fileId, req.headers.range);
+    
+    console.log("[VIDEO DEBUG] Drive file stream obtained", {
+      memoryId,
+      status: driveFile.status,
+      headers: driveFile.headers,
+      duration: Date.now() - streamStart
+    });
+
     res.status(driveFile.status || (req.headers.range ? 206 : 200));
     
     // Normalize MIME type for mobile compatibility
@@ -549,6 +584,14 @@ export async function streamMedia(req, res, next) {
     if (mimeType === 'video/quicktime') {
       mimeType = 'video/mp4'; // iOS prefers mp4 MIME type
     }
+    
+    console.log("[VIDEO DEBUG] Setting response headers", {
+      originalMimeType: memory.mimeType,
+      normalizedMimeType: mimeType,
+      range: req.headers.range,
+      status: driveFile.status || (req.headers.range ? 206 : 200)
+    });
+    
     res.setHeader("Content-Type", mimeType);
     res.setHeader("Accept-Ranges", "bytes");
     res.setHeader("Cache-Control", "private, max-age=3600");
@@ -572,13 +615,47 @@ export async function streamMedia(req, res, next) {
     if (contentLength) res.setHeader("Content-Length", contentLength);
     if (contentRange) res.setHeader("Content-Range", contentRange);
 
+    console.log("[VIDEO DEBUG] Response headers set", {
+      contentLength,
+      contentRange,
+      allHeaders: res.getHeaders()
+    });
+
     driveFile.stream.on("error", (err) => {
-      console.error("Stream error:", err);
+      console.error("[VIDEO DEBUG] Stream error", {
+        memoryId,
+        error: err.message,
+        stack: err.stack,
+        duration: Date.now() - streamStart
+      });
       next(err);
     });
+    
+    driveFile.stream.on('data', (chunk) => {
+      console.log("[VIDEO DEBUG] Stream data chunk", {
+        memoryId,
+        chunkSize: chunk.length,
+        duration: Date.now() - streamStart
+      });
+    });
+    
+    driveFile.stream.on('end', () => {
+      console.log("[VIDEO DEBUG] Stream ended", {
+        memoryId,
+        duration: Date.now() - streamStart
+      });
+    });
+    
     driveFile.stream.pipe(res);
+    console.log("[VIDEO DEBUG] Stream piped to response", { memoryId });
   } catch (error) {
-    console.error("Media streaming error:", error);
+    console.error("[VIDEO DEBUG] Media streaming error", {
+      memoryId,
+      error: error.message,
+      stack: error.stack,
+      code: error.code,
+      duration: Date.now() - streamStart
+    });
     next(error);
   }
 }

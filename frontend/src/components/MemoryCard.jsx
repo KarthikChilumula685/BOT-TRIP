@@ -1,7 +1,7 @@
 import { Heart, MapPin, Play, Clock, CheckCircle, AlertCircle, Edit2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 import { useAuth } from "../context/AuthContext";
 import useProtectedMedia from "../hooks/useProtectedMedia";
@@ -13,6 +13,7 @@ import Loader from "./Loader";
 export default function MemoryCard({ memory, onClick, onLike, onUpdate }) {
   const { user } = useAuth();
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const videoRef = useRef(null);
 
   const {
     url,
@@ -20,6 +21,7 @@ export default function MemoryCard({ memory, onClick, onLike, onUpdate }) {
     loading,
 
     error,
+    errorDetails,
   } = useProtectedMedia(memory._id);
 
   const liked = memory.likes?.some(
@@ -96,6 +98,7 @@ text-gray-400
           (memory.type === "video" ? (
             <div className="relative">
               <video
+                ref={videoRef}
                 src={url}
                 className="
 max-h-[560px]
@@ -112,6 +115,30 @@ group-hover:scale-105
                 crossOrigin="anonymous"
                 x-webkit-airplay="allow"
                 disablePictureInPicture={false}
+                onLoadStart={() => console.log("[VIDEO DEBUG] Video load started", { memoryId: memory._id, url })}
+                onLoadedMetadata={(e) => console.log("[VIDEO DEBUG] Video metadata loaded", { 
+                  memoryId: memory._id, 
+                  duration: e.target.duration,
+                  width: e.target.videoWidth,
+                  height: e.target.videoHeight
+                })}
+                onCanPlay={() => console.log("[VIDEO DEBUG] Video can play", { memoryId: memory._id })}
+                onCanPlayThrough={() => console.log("[VIDEO DEBUG] Video can play through", { memoryId: memory._id })}
+                onPlay={() => console.log("[VIDEO DEBUG] Video play started", { memoryId: memory._id })}
+                onPause={() => console.log("[VIDEO DEBUG] Video paused", { memoryId: memory._id })}
+                onEnded={() => console.log("[VIDEO DEBUG] Video ended", { memoryId: memory._id })}
+                onError={(e) => console.error("[VIDEO DEBUG] Video error", {
+                  memoryId: memory._id,
+                  error: e.target.error,
+                  errorCode: e.target.error?.code,
+                  errorMessage: e.target.error?.message,
+                  networkState: e.target.networkState,
+                  readyState: e.target.readyState,
+                  url
+                })}
+                onStalled={() => console.warn("[VIDEO DEBUG] Video stalled", { memoryId: memory._id })}
+                onWaiting={() => console.log("[VIDEO DEBUG] Video waiting", { memoryId: memory._id })}
+                onSuspend={() => console.log("[VIDEO DEBUG] Video suspended", { memoryId: memory._id })}
               />
 
               <div

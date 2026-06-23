@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { format } from "date-fns";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import useProtectedMedia from "../hooks/useProtectedMedia";
@@ -32,7 +32,8 @@ export default function ImageViewer({
   onDelete,
 }) {
   const { user } = useAuth();
-  const { url, loading } = useProtectedMedia(memory?._id);
+  const { url, loading, error, errorDetails } = useProtectedMedia(memory?._id);
+  const videoRef = useRef(null);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -242,6 +243,7 @@ export default function ImageViewer({
           {url &&
             (memory.type === "video" ? (
               <video
+                ref={videoRef}
                 src={url}
                 controls
                 autoPlay
@@ -256,6 +258,30 @@ export default function ImageViewer({
                 crossOrigin="anonymous"
                 x-webkit-airplay="allow"
                 disablePictureInPicture={false}
+                onLoadStart={() => console.log("[VIDEO DEBUG] ImageViewer video load started", { memoryId: memory._id, url })}
+                onLoadedMetadata={(e) => console.log("[VIDEO DEBUG] ImageViewer video metadata loaded", { 
+                  memoryId: memory._id, 
+                  duration: e.target.duration,
+                  width: e.target.videoWidth,
+                  height: e.target.videoHeight
+                })}
+                onCanPlay={() => console.log("[VIDEO DEBUG] ImageViewer video can play", { memoryId: memory._id })}
+                onCanPlayThrough={() => console.log("[VIDEO DEBUG] ImageViewer video can play through", { memoryId: memory._id })}
+                onPlay={() => console.log("[VIDEO DEBUG] ImageViewer video play started", { memoryId: memory._id })}
+                onPause={() => console.log("[VIDEO DEBUG] ImageViewer video paused", { memoryId: memory._id })}
+                onEnded={() => console.log("[VIDEO DEBUG] ImageViewer video ended", { memoryId: memory._id })}
+                onError={(e) => console.error("[VIDEO DEBUG] ImageViewer video error", {
+                  memoryId: memory._id,
+                  error: e.target.error,
+                  errorCode: e.target.error?.code,
+                  errorMessage: e.target.error?.message,
+                  networkState: e.target.networkState,
+                  readyState: e.target.readyState,
+                  url
+                })}
+                onStalled={() => console.warn("[VIDEO DEBUG] ImageViewer video stalled", { memoryId: memory._id })}
+                onWaiting={() => console.log("[VIDEO DEBUG] ImageViewer video waiting", { memoryId: memory._id })}
+                onSuspend={() => console.log("[VIDEO DEBUG] ImageViewer video suspended", { memoryId: memory._id })}
               />
             ) : (
               <motion.img
