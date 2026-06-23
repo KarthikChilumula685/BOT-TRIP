@@ -43,7 +43,7 @@ export default function Profile() {
     if (activeTab === "memories") {
       setLoadingMemories(true);
       api
-        .get("/memories?uploadedBy=" + user._id)
+        .get("/memories?uploader=" + user._id)
         .then(({ data }) => setMemories(data.memories || []))
         .catch((error) => toast.error(getErrorMessage(error)))
         .finally(() => setLoadingMemories(false));
