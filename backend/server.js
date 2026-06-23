@@ -25,7 +25,8 @@ app.use(
 app.use(
   cors({
     origin: process.env.CLIENT_URL?.split(",").map((url) => url.trim()) || [
-      "http://localhost:5173"
+      "http://localhost:5173",
+      /^https?:\/\/.*/ // Allow all origins in production if CLIENT_URL not set
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -41,6 +42,17 @@ app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 100,
+    standardHeaders: "draft-7",
+    legacyHeaders: false
+  })
+);
+
+// More lenient rate limit for upload endpoint to handle mobile uploads
+app.use(
+  "/api/memories/upload",
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 10, // Allow 10 uploads per 15 minutes
     standardHeaders: "draft-7",
     legacyHeaders: false
   })

@@ -1,11 +1,12 @@
 import axios from "axios";
 
 export const API_URL =
-  import.meta.env.VITE_API_URL || "/api";
+  import.meta.env.VITE_API_URL || 
+  (import.meta.env.PROD ? window.location.origin + "/api" : "/api");
 
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 30000
+  timeout: 300000 // 5 minutes default timeout for production
 });
 
 api.interceptors.request.use((config) => {
