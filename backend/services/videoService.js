@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 
 ffmpeg.setFfmpegPath(ffmpegPath.path);
 
-const browserCompatibleFormats = ["mp4", "webm"];
+const browserCompatibleFormats = ["mp4", "webm", "quicktime", "mov"];
 const thumbnailDir = join(tmpdir(), "bot-trip-thumbnails");
 
 // Ensure thumbnail directory exists
@@ -16,9 +16,11 @@ if (!existsSync(thumbnailDir)) {
 }
 
 export function isBrowserCompatible(mimeType) {
+  // Check for mobile-compatible formats
+  const lowerMime = mimeType.toLowerCase();
   return browserCompatibleFormats.some(format => 
-    mimeType.includes(format)
-  );
+    lowerMime.includes(format)
+  ) || lowerMime.includes('video/3gpp') || lowerMime.includes('video/3gpp2');
 }
 
 export async function generateThumbnail(inputPath, memoryId) {

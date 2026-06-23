@@ -88,7 +88,7 @@ async function resolveMediaFolder(type, tripName) {
 export async function uploadToDrive(file, { type, tripName }) {
   const { drive, mediaFolderId } = await resolveMediaFolder(type, tripName);
   
-  // Add timeout for mobile uploads (10 minutes)
+  // Extended timeout for mobile uploads (30 minutes)
   const response = await drive.files.create({
     requestBody: {
       name: file.originalname,
@@ -101,7 +101,7 @@ export async function uploadToDrive(file, { type, tripName }) {
     },
     fields: "id,name,mimeType,size,createdTime",
     supportsAllDrives: true,
-    timeout: 10 * 60 * 1000 // 10 minutes timeout
+    timeout: 30 * 60 * 1000 // 30 minutes timeout for mobile
   });
 
   return response.data;

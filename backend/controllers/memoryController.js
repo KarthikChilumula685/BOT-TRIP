@@ -52,6 +52,7 @@ async function processVideoConversion(memoryId, inputPath) {
 export async function uploadMemories(req, res, next) {
   const uploadedDriveIds = [];
   const filesToCleanup = [];
+  const failedFiles = [];
 
   try {
     if (!req.files?.length) {
@@ -119,14 +120,40 @@ export async function uploadMemories(req, res, next) {
         }
       } catch (fileError) {
         console.error(`Failed to upload file ${file.originalname}:`, fileError);
+        failedFiles.push({
+          fileName: file.originalname,
+          error: fileError.message || "Upload failed"
+        });
         // Continue with other files even if one fails
         // The file will be cleaned up in the finally block
       }
     }
 
+    // Return detailed response with success/failure info
+    if (failedFiles.length > 0) {
+      return res.status(207).json({ 
+        memories: created,
+        failedFiles,
+        message: `${created.length} files uploaded successfully, ${failedFiles.length} failed`
+      });
+    }
+
     res.status(201).json({ memories: created });
   } catch (error) {
     await Promise.allSettled(uploadedDriveIds.map((id) => deleteFromDrive(id)));
+    
+    // Provide mobile-friendly error messages
+    if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {
+      return res.status(408).json({ 
+        message: "Upload timed out. Please check your connection and try again." 
+      });
+    }
+    if (error.code === 'ENETDOWN' || error.code === 'ECONNRESET') {
+      return res.status(503).json({ 
+        message: "Network connection lost. Please check your internet and try again." 
+      });
+    }
+    
     next(error);
   } finally {
     // Only cleanup files that aren't being processed for conversion
@@ -394,9 +421,19 @@ export async function streamMedia(req, res, next) {
 
     const driveFile = await getDriveFileStream(memory.fileId, req.headers.range);
     res.status(driveFile.status || (req.headers.range ? 206 : 200));
-    res.setHeader("Content-Type", memory.mimeType);
+    
+    // Normalize MIME type for mobile compatibility
+    let mimeType = memory.mimeType;
+    if (mimeType === 'video/quicktime') {
+      mimeType = 'video/mp4'; // iOS prefers mp4 MIME type
+    }
+    res.setHeader("Content-Type", mimeType);
     res.setHeader("Accept-Ranges", "bytes");
     res.setHeader("Cache-Control", "private, max-age=3600");
+    
+    // Mobile-specific headers for better playback
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Access-Control-Expose-Headers", "Content-Length, Content-Range, Accept-Ranges");
     
     // Add CORS headers for media streaming
     const origin = req.headers.origin;
@@ -404,7 +441,8 @@ export async function streamMedia(req, res, next) {
       res.setHeader("Access-Control-Allow-Origin", origin);
       res.setHeader("Access-Control-Allow-Credentials", "true");
       res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
-      res.setHeader("Access-Control-Allow-Headers", "Range, Authorization");
+      res.setHeader("Access-Control-Allow-Headers", "Range, Authorization, Content-Type");
+      res.setHeader("Access-Control-Max-Age", "86400");
     }
 
     const contentLength = driveFile.headers["content-length"];
@@ -412,9 +450,13 @@ export async function streamMedia(req, res, next) {
     if (contentLength) res.setHeader("Content-Length", contentLength);
     if (contentRange) res.setHeader("Content-Range", contentRange);
 
-    driveFile.stream.on("error", next);
+    driveFile.stream.on("error", (err) => {
+      console.error("Stream error:", err);
+      next(err);
+    });
     driveFile.stream.pipe(res);
   } catch (error) {
+    console.error("Media streaming error:", error);
     next(error);
   }
 }

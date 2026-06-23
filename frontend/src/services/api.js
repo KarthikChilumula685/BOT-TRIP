@@ -6,7 +6,9 @@ export const API_URL =
 
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 300000 // 5 minutes default timeout for production
+  timeout: 300000, // 5 minutes default timeout for production
+  maxContentLength: 500 * 1024 * 1024, // 500MB max response size
+  maxBodyLength: 500 * 1024 * 1024 // 500MB max request body
 });
 
 api.interceptors.request.use((config) => {
@@ -22,6 +24,10 @@ api.interceptors.response.use(
       localStorage.removeItem("botTripToken");
       localStorage.removeItem("botTripUser");
       window.dispatchEvent(new Event("bot-trip-unauthorized"));
+    }
+    // Mobile-specific error handling
+    if (error.code === 'ECONNABORTED' && error.message.includes('timeout')) {
+      error.message = 'Request timed out. Please check your connection.';
     }
     return Promise.reject(error);
   }

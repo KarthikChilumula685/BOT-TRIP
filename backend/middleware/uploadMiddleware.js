@@ -4,7 +4,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 
 const maxFileSize =
-  Number.parseInt(process.env.MAX_FILE_SIZE_MB || "250", 10) * 1024 * 1024;
+  Number.parseInt(process.env.MAX_FILE_SIZE_MB || "500", 10) * 1024 * 1024;
 
 const allowedMimeTypes = new Set([
   "image/jpeg",
@@ -21,7 +21,11 @@ const allowedMimeTypes = new Set([
   "video/mov",
   "video/wmv",
   "video/flv",
-  "video/mkv"
+  "video/mkv",
+  "video/3gpp",
+  "video/3gpp2",
+  "video/x-msvideo",
+  "video/x-matroska"
 ]);
 
 export const upload = multer({
@@ -34,7 +38,8 @@ export const upload = multer({
   }),
   limits: {
     fileSize: maxFileSize,
-    files: 20
+    files: 20,
+    fieldSize: 10 * 1024 * 1024 // 10MB for form fields
   },
   fileFilter: (_req, file, callback) => {
     if (!allowedMimeTypes.has(file.mimetype)) {

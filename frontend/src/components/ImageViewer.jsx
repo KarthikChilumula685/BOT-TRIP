@@ -246,6 +246,7 @@ export default function ImageViewer({
                 controls
                 autoPlay
                 playsInline
+                webkit-playsinline
                 className="
           max-h-full
           max-w-full
@@ -253,6 +254,8 @@ export default function ImageViewer({
           "
                 controlsList="nodownload"
                 crossOrigin="anonymous"
+                x-webkit-airplay="allow"
+                disablePictureInPicture={false}
               />
             ) : (
               <motion.img

@@ -15,7 +15,7 @@ import { useNavigate } from "react-router-dom";
 import api, { getErrorMessage } from "../services/api";
 
 const acceptedTypes =
-  "image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,video/mp4,video/webm,video/quicktime,video/x-m4v,video/avi,video/mov,video/wmv,video/flv,video/mkv";
+  "image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,video/mp4,video/webm,video/quicktime,video/x-m4v,video/avi,video/mov,video/wmv,video/flv,video/mkv,video/3gpp,video/3gpp2,video/x-msvideo,video/x-matroska";
 
 export default function Upload() {
   const [files, setFiles] = useState([]);
@@ -95,7 +95,7 @@ export default function Upload() {
     setProgress(0);
 
     try {
-      const { data } = await api.post("/memories/upload", payload, {
+      const { data, status } = await api.post("/memories/upload", payload, {
         timeout: 30 * 60 * 1000, // 30 minutes timeout for mobile uploads
         onUploadProgress: (event) => {
           if (event.total)
@@ -104,10 +104,12 @@ export default function Upload() {
       });
 
       const successCount = data.memories.length;
-      const failedCount = files.length - successCount;
+      const failedCount = data.failedFiles?.length || (files.length - successCount);
       
-      if (failedCount > 0) {
-        toast.success(`${successCount} of ${files.length} files uploaded successfully. ${failedCount} files failed.`);
+      if (status === 207 || failedCount > 0) {
+        // Partial success - show which files failed
+        const failedNames = data.failedFiles?.map(f => f.fileName).join(", ") || "some files";
+        toast.error(`${successCount} uploaded, ${failedCount} failed: ${failedNames}`);
       } else {
         toast.success(`${successCount} memories stored`);
       }
@@ -120,14 +122,14 @@ export default function Upload() {
       const errorMessage = getErrorMessage(error);
       
       // Provide more specific error messages for common mobile upload issues
-      if (errorMessage.includes("timeout") || errorMessage.includes("ETIMEDOUT")) {
-        toast.error("Upload timed out. Please check your connection and try again.");
-      } else if (errorMessage.includes("network") || errorMessage.includes("ENET")) {
-        toast.error("Network error. Please check your internet connection and try again.");
+      if (errorMessage.includes("timeout") || errorMessage.includes("ETIMEDOUT") || error.code === 'ECONNABORTED') {
+        toast.error("Upload timed out. Try a smaller file or better connection.");
+      } else if (errorMessage.includes("network") || errorMessage.includes("ENET") || errorMessage.includes("connection lost")) {
+        toast.error("Network error. Check your internet and try again.");
       } else if (errorMessage.includes("file too large") || errorMessage.includes("LIMIT_FILE_SIZE")) {
-        toast.error("File too large. Maximum file size is 250MB.");
+        toast.error("File too large. Maximum file size is 500MB.");
       } else if (errorMessage.includes("not supported")) {
-        toast.error("File type not supported. Please use JPEG, PNG, WebP, GIF, HEIC, HEIF, MP4, WebM, or MOV files.");
+        toast.error("File type not supported. Use JPEG, PNG, WebP, GIF, HEIC, HEIF, MP4, WebM, or MOV.");
       } else {
         toast.error(errorMessage);
       }

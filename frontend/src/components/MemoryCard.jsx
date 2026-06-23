@@ -107,8 +107,11 @@ group-hover:scale-105
 "
                 controls
                 playsInline
+                webkit-playsinline
                 preload="metadata"
                 crossOrigin="anonymous"
+                x-webkit-airplay="allow"
+                disablePictureInPicture={false}
               />
 
               <div
