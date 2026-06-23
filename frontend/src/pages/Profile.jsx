@@ -79,7 +79,8 @@ bg-gradient-to-r
 from-orange-100
 via-pink-100
 to-blue-100
-p-8
+p-6
+sm:p-8
 shadow-md
 "
       >
@@ -100,7 +101,9 @@ font-semibold
           className="
 mt-3
 font-display
-text-4xl
+text-2xl
+sm:text-3xl
+lg:text-4xl
 font-bold
 text-gray-900
 "
@@ -113,6 +116,8 @@ text-gray-900
 mt-3
 max-w-xl
 text-gray-600
+text-sm
+sm:text-base
 "
         >
           Every memory you shared, every laugh you saved, lives here forever.
@@ -132,7 +137,8 @@ lg:grid-cols-[0.8fr_1.2fr]
           className="
 rounded-[2rem]
 bg-white
-p-8
+p-6
+sm:p-8
 text-center
 shadow-md
 border

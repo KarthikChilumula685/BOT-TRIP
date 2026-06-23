@@ -179,9 +179,10 @@ export default function ImageViewer({
         p-3
         text-white
         backdrop-blur
+        lg:p-4
         "
         >
-          <X size={21} />
+          <X size={24} className="lg:size-28" />
         </button>
 
         {/* NAVIGATION */}
@@ -198,9 +199,10 @@ export default function ImageViewer({
         bg-white/20
         p-3
         text-white
+        lg:p-4
         "
         >
-          <ChevronLeft />
+          <ChevronLeft size={24} className="lg:size-28" />
         </button>
 
         <button
@@ -216,9 +218,10 @@ export default function ImageViewer({
         bg-white/20
         p-3
         text-white
+        lg:p-4
         "
         >
-          <ChevronRight />
+          <ChevronRight size={24} className="lg:size-28" />
         </button>
 
         {/* IMAGE AREA */}
@@ -402,7 +405,8 @@ export default function ImageViewer({
         my-6
         grid
         grid-cols-3
-        gap-3
+        gap-2
+        sm:gap-3
         "
           >
             {(memory.uploadedBy._id === user._id || user.role === "admin") && (
@@ -411,16 +415,22 @@ export default function ImageViewer({
                 className="
         rounded-full
         bg-white
-        py-3
+        py-2.5
+        px-3
         shadow
         flex
         justify-center
-        gap-2
+        gap-1.5
         text-gray-600
+        text-xs
+        sm:py-3
+        sm:px-4
+        sm:gap-2
+        sm:text-sm
         "
               >
-                <Edit2 />
-                Edit
+                <Edit2 size={16} className="sm:size-18" />
+                <span className="hidden sm:inline">Edit</span>
               </button>
             )}
 
@@ -429,19 +439,25 @@ export default function ImageViewer({
               className={`
         rounded-full
         bg-white
-        py-3
+        py-2.5
+        px-3
         shadow
         flex
         justify-center
-        gap-2
+        gap-1.5
+        text-xs
+        sm:py-3
+        sm:px-4
+        sm:gap-2
+        sm:text-sm
 
         ${liked ? "text-pink-500" : "text-gray-600"}
 
         `}
             >
-              <Heart fill={liked ? "currentColor" : "none"} />
+              <Heart fill={liked ? "currentColor" : "none"} size={16} className="sm:size-18" />
 
-              {memory.likes?.length || 0}
+              <span className="hidden sm:inline">{memory.likes?.length || 0}</span>
             </button>
 
             <button
@@ -449,16 +465,22 @@ export default function ImageViewer({
               className="
         rounded-full
         bg-white
-        py-3
+        py-2.5
+        px-3
         shadow
         flex
         justify-center
-        gap-2
+        gap-1.5
         text-gray-600
+        text-xs
+        sm:py-3
+        sm:px-4
+        sm:gap-2
+        sm:text-sm
         "
             >
-              <Download />
-              Original
+              <Download size={16} className="sm:size-18" />
+              <span className="hidden sm:inline">Original</span>
             </button>
           </div>
 
@@ -498,13 +520,15 @@ export default function ImageViewer({
         gap-2
         font-bold
         text-gray-900
+        text-sm
+        sm:text-base
         "
           >
-            <MessageCircle />
+            <MessageCircle size={18} className="sm:size-20" />
             Memories shared
           </h3>
 
-          <div className="mt-5 space-y-4 pb-24">
+          <div className="mt-5 space-y-4 pb-24 sm:pb-8">
             {memory.comments?.length ? (
               memory.comments
                 .filter((comment) => !comment.parentComment)
@@ -729,10 +753,13 @@ export default function ImageViewer({
         fixed
         bottom-0
         right-0
+        left-0
+        lg:left-auto
         flex
         gap-2
         bg-white
-        p-4
+        p-3
+        sm:p-4
         shadow
 
         w-full
@@ -748,11 +775,15 @@ export default function ImageViewer({
          flex-1
         rounded-full
         bg-gray-100
-        px-5
+        px-4
+        sm:px-5
+        py-2.5
         outline-none
 
         text-gray-900
         placeholder:text-gray-400
+        text-sm
+        sm:text-base
         "
             />
 
@@ -760,15 +791,17 @@ export default function ImageViewer({
               disabled={submitting || !comment.trim()}
               className="
         grid
-        h-12
-        w-12
+        h-10
+        w-10
+        sm:h-12
+        sm:w-12
         place-items-center
         rounded-full
         bg-orange-500
         text-white
         "
             >
-              <Send size={17} />
+              <Send size={16} className="sm:size-17" />
             </button>
           </form>
         </aside>

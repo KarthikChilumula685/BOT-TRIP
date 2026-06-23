@@ -277,7 +277,8 @@ leading-7
 mt-6 grid
 grid-cols-2
 sm:grid-cols-3
-gap-4
+lg:grid-cols-4
+gap-3
 "
             >
               {files.map((item) => (

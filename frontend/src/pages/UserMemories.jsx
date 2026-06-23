@@ -96,7 +96,7 @@ export default function UserMemories() {
   return (
     <div className="space-y-8">
       {/* HEADER */}
-      <section className="rounded-[2rem] bg-gradient-to-r from-orange-100 via-pink-100 to-blue-100 p-8 shadow-md">
+      <section className="rounded-[2rem] bg-gradient-to-r from-orange-100 via-pink-100 to-blue-100 p-6 sm:p-8 shadow-md">
         <button
           onClick={() => navigate(-1)}
           className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-gray-900 transition"
@@ -110,11 +110,11 @@ export default function UserMemories() {
           {userName}'s Memories
         </div>
 
-        <h1 className="mt-3 font-display text-4xl font-bold text-gray-900">
+        <h1 className="mt-3 font-display text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
           Memory Collection
         </h1>
 
-        <p className="mt-3 max-w-xl text-gray-600">
+        <p className="mt-3 max-w-xl text-gray-600 text-sm sm:text-base">
           All the beautiful moments captured by {userName || "this user"}, ordered chronologically.
         </p>
 
