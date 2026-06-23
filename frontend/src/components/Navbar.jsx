@@ -2,6 +2,7 @@ import {
   CalendarDays,
   CloudUpload,
   Images,
+  LayoutDashboard,
   LogOut,
   Menu,
   Sparkles,
@@ -21,6 +22,12 @@ import { useAuth } from "../context/AuthContext";
 import Avatar from "./Avatar";
 
 const links = [
+  {
+    to: "/dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+  },
+
   {
     to: "/gallery",
     label: "Gallery",
