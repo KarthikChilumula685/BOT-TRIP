@@ -53,11 +53,38 @@ export async function uploadMemories(req, res, next) {
   const uploadedDriveIds = [];
   const filesToCleanup = [];
   const failedFiles = [];
+  const uploadStartTime = Date.now();
+
+  console.log("[UPLOAD DEBUG] Upload request received", {
+    timestamp: new Date().toISOString(),
+    userAgent: req.headers['user-agent'],
+    contentType: req.headers['content-type'],
+    contentLength: req.headers['content-length'],
+    fileCount: req.files?.length || 0,
+    userId: req.user?._id,
+    body: {
+      caption: req.body.caption,
+      location: req.body.location,
+      tripName: req.body.tripName,
+      memoryDate: req.body.memoryDate
+    }
+  });
 
   try {
     if (!req.files?.length) {
+      console.error("[UPLOAD DEBUG] No files provided in request");
       return res.status(400).json({ message: "Choose at least one file" });
     }
+
+    console.log("[UPLOAD DEBUG] Files received", {
+      fileCount: req.files.length,
+      files: req.files.map(f => ({
+        originalname: f.originalname,
+        mimetype: f.mimetype,
+        size: f.size,
+        path: f.path
+      }))
+    });
 
     const {
       caption = "",
@@ -68,11 +95,35 @@ export async function uploadMemories(req, res, next) {
     const created = [];
 
     for (const file of req.files) {
+      const fileStartTime = Date.now();
+      console.log(`[UPLOAD DEBUG] Processing file: ${file.originalname}`, {
+        timestamp: new Date().toISOString(),
+        fileName: file.originalname,
+        fileSize: file.size,
+        mimeType: file.mimetype
+      });
+
       try {
+        // File validation
+        console.log(`[UPLOAD DEBUG] Validating file: ${file.originalname}`);
         const type = file.mimetype.startsWith("video/") ? "video" : "photo";
+        console.log(`[UPLOAD DEBUG] File type determined: ${type}`);
+
+        // Storage upload
+        console.log(`[UPLOAD DEBUG] Starting Google Drive upload for: ${file.originalname}`);
+        const driveUploadStart = Date.now();
         const driveFile = await uploadToDrive(file, { type, tripName });
+        const driveUploadDuration = Date.now() - driveUploadStart;
+        console.log(`[UPLOAD DEBUG] Google Drive upload completed for: ${file.originalname}`, {
+          duration: driveUploadDuration,
+          driveFileId: driveFile.id,
+          driveFileSize: driveFile.size
+        });
+        
         uploadedDriveIds.push(driveFile.id);
 
+        // Database save
+        console.log(`[UPLOAD DEBUG] Creating memory record for: ${file.originalname}`);
         const memory = new Memory({
           fileId: driveFile.id,
           fileName: driveFile.name || file.originalname,
@@ -90,26 +141,48 @@ export async function uploadMemories(req, res, next) {
         
         // Handle video processing
         if (type === "video") {
+          console.log(`[UPLOAD DEBUG] Processing video: ${file.originalname}`);
           const isCompatible = isBrowserCompatible(file.mimetype);
+          console.log(`[UPLOAD DEBUG] Video compatibility check: ${isCompatible}`);
           memory.conversionStatus = isCompatible ? "completed" : "pending";
           
           // Generate thumbnail
           try {
+            console.log(`[UPLOAD DEBUG] Generating thumbnail for: ${file.originalname}`);
             const thumbnailPath = await generateThumbnail(file.path, memory._id.toString());
             memory.thumbnailUrl = `/api/memories/${memory._id}/thumbnail`;
+            console.log(`[UPLOAD DEBUG] Thumbnail generated successfully for: ${file.originalname}`);
           } catch (error) {
-            console.error("Thumbnail generation failed:", error);
+            console.error(`[UPLOAD DEBUG] Thumbnail generation failed for ${file.originalname}:`, {
+              error: error.message,
+              stack: error.stack
+            });
           }
         }
         
+        console.log(`[UPLOAD DEBUG] Saving memory to database: ${file.originalname}`);
         await memory.save();
+        console.log(`[UPLOAD DEBUG] Memory saved successfully: ${file.originalname}`, {
+          memoryId: memory._id
+        });
+        
         created.push(serializeMemory(memory, req));
+        
+        const fileDuration = Date.now() - fileStartTime;
+        console.log(`[UPLOAD DEBUG] File processing completed: ${file.originalname}`, {
+          duration: fileDuration,
+          success: true
+        });
         
         // Async video conversion for non-compatible formats
         if (type === "video" && memory.conversionStatus === "pending") {
+          console.log(`[UPLOAD DEBUG] Scheduling video conversion for: ${file.originalname}`);
           // Don't add to cleanup - conversion will handle it
           processVideoConversion(memory._id, file.path).catch(err => {
-            console.error("Video conversion failed:", err);
+            console.error(`[UPLOAD DEBUG] Video conversion failed for ${file.originalname}:`, {
+              error: err.message,
+              stack: err.stack
+            });
             Memory.findByIdAndUpdate(memory._id, { conversionStatus: "failed" }).catch();
             // Cleanup file if conversion fails
             unlink(file.path).catch(() => {});
@@ -119,18 +192,42 @@ export async function uploadMemories(req, res, next) {
           if (file.path) filesToCleanup.push(file.path);
         }
       } catch (fileError) {
-        console.error(`Failed to upload file ${file.originalname}:`, fileError);
+        const fileDuration = Date.now() - fileStartTime;
+        console.error(`[UPLOAD DEBUG] Failed to upload file ${file.originalname}:`, {
+          error: fileError.message,
+          stack: fileError.stack,
+          code: fileError.code,
+          duration: fileDuration,
+          fileName: file.originalname,
+          fileSize: file.size,
+          mimeType: file.mimetype
+        });
         failedFiles.push({
           fileName: file.originalname,
-          error: fileError.message || "Upload failed"
+          error: fileError.message || "Upload failed",
+          code: fileError.code
         });
         // Continue with other files even if one fails
         // The file will be cleaned up in the finally block
       }
     }
 
+    const totalDuration = Date.now() - uploadStartTime;
+    console.log("[UPLOAD DEBUG] Upload processing completed", {
+      timestamp: new Date().toISOString(),
+      totalDuration,
+      successCount: created.length,
+      failedCount: failedFiles.length,
+      totalFiles: req.files.length
+    });
+
     // Return detailed response with success/failure info
     if (failedFiles.length > 0) {
+      console.error("[UPLOAD DEBUG] Partial upload failure", {
+        successCount: created.length,
+        failedCount: failedFiles.length,
+        failedFiles
+      });
       return res.status(207).json({ 
         memories: created,
         failedFiles,
@@ -138,26 +235,51 @@ export async function uploadMemories(req, res, next) {
       });
     }
 
+    console.log("[UPLOAD DEBUG] Upload successful", {
+      successCount: created.length,
+      totalDuration
+    });
     res.status(201).json({ memories: created });
   } catch (error) {
+    const totalDuration = Date.now() - uploadStartTime;
+    console.error("[UPLOAD DEBUG] Upload failed with exception", {
+      error: error.message,
+      stack: error.stack,
+      code: error.code,
+      timestamp: new Date().toISOString(),
+      totalDuration,
+      uploadedDriveIds,
+      failedFilesCount: failedFiles.length
+    });
+    
     await Promise.allSettled(uploadedDriveIds.map((id) => deleteFromDrive(id)));
     
     // Provide mobile-friendly error messages
     if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {
+      console.error("[UPLOAD DEBUG] Timeout error");
       return res.status(408).json({ 
-        message: "Upload timed out. Please check your connection and try again." 
+        message: "Upload timed out. Please check your connection and try again.",
+        code: 'ETIMEDOUT'
       });
     }
     if (error.code === 'ENETDOWN' || error.code === 'ECONNRESET') {
+      console.error("[UPLOAD DEBUG] Network error");
       return res.status(503).json({ 
-        message: "Network connection lost. Please check your internet and try again." 
+        message: "Network connection lost. Please check your internet and try again.",
+        code: error.code
       });
     }
     
+    console.error("[UPLOAD DEBUG] Unknown error type, passing to error handler");
     next(error);
   } finally {
+    console.log("[UPLOAD DEBUG] Cleanup phase", {
+      filesToCleanup: filesToCleanup.length,
+      timestamp: new Date().toISOString()
+    });
     // Only cleanup files that aren't being processed for conversion
     await Promise.allSettled(filesToCleanup.map((path) => unlink(path)));
+    console.log("[UPLOAD DEBUG] Cleanup completed");
   }
 }
 

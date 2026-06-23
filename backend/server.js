@@ -85,23 +85,58 @@ app.use((_req, res) => {
 });
 
 app.use((error, _req, res, _next) => {
-  console.error(error);
+  console.error("[UPLOAD DEBUG] Server error handler invoked", {
+    error: error.message,
+    stack: error.stack,
+    code: error.code,
+    name: error.name,
+    status: error.status,
+    timestamp: new Date().toISOString()
+  });
 
   if (error instanceof multer.MulterError) {
-    return res.status(400).json({ message: error.message });
+    console.error("[UPLOAD DEBUG] Multer error", {
+      code: error.code,
+      field: error.field,
+      message: error.message
+    });
+    return res.status(400).json({ 
+      message: error.message,
+      code: error.code,
+      type: 'multer_error'
+    });
   }
   if (error.name === "ValidationError") {
-    return res.status(400).json({ message: error.message });
+    console.error("[UPLOAD DEBUG] Validation error", {
+      message: error.message,
+      errors: error.errors
+    });
+    return res.status(400).json({ 
+      message: error.message,
+      code: 'VALIDATION_ERROR',
+      type: 'validation_error'
+    });
   }
   if (error.name === "CastError") {
-    return res.status(400).json({ message: "Invalid resource id" });
+    console.error("[UPLOAD DEBUG] Cast error", {
+      path: error.path,
+      value: error.value,
+      kind: error.kind
+    });
+    return res.status(400).json({ 
+      message: "Invalid resource id",
+      code: 'CAST_ERROR',
+      type: 'cast_error'
+    });
   }
 
+  // Detailed error response for debugging
+  const isDevelopment = process.env.NODE_ENV !== "production";
   res.status(error.status || 500).json({
-    message:
-      process.env.NODE_ENV === "production"
-        ? "Something went wrong"
-        : error.message || "Something went wrong"
+    message: isDevelopment ? (error.message || "Something went wrong") : "Something went wrong",
+    code: error.code || 'INTERNAL_ERROR',
+    type: error.name || 'Error',
+    ...(isDevelopment && { stack: error.stack })
   });
 });
 

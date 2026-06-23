@@ -86,25 +86,64 @@ async function resolveMediaFolder(type, tripName) {
 }
 
 export async function uploadToDrive(file, { type, tripName }) {
-  const { drive, mediaFolderId } = await resolveMediaFolder(type, tripName);
-  
-  // Extended timeout for mobile uploads (30 minutes)
-  const response = await drive.files.create({
-    requestBody: {
-      name: file.originalname,
-      parents: [mediaFolderId],
-      description: `Uploaded to BOT-TRIP on ${new Date().toISOString()}`
-    },
-    media: {
-      mimeType: file.mimetype,
-      body: createReadStream(file.path)
-    },
-    fields: "id,name,mimeType,size,createdTime",
-    supportsAllDrives: true,
-    timeout: 30 * 60 * 1000 // 30 minutes timeout for mobile
+  const uploadStart = Date.now();
+  console.log("[UPLOAD DEBUG] Google Drive upload started", {
+    timestamp: new Date().toISOString(),
+    fileName: file.originalname,
+    fileSize: file.size,
+    mimeType: file.mimetype,
+    type,
+    tripName
   });
 
-  return response.data;
+  try {
+    const { drive, mediaFolderId } = await resolveMediaFolder(type, tripName);
+    console.log("[UPLOAD DEBUG] Drive folder resolved", {
+      mediaFolderId,
+      tripName
+    });
+  
+    // Extended timeout for mobile uploads (30 minutes)
+    const response = await drive.files.create({
+      requestBody: {
+        name: file.originalname,
+        parents: [mediaFolderId],
+        description: `Uploaded to BOT-TRIP on ${new Date().toISOString()}`
+      },
+      media: {
+        mimeType: file.mimetype,
+        body: createReadStream(file.path)
+      },
+      fields: "id,name,mimeType,size,createdTime",
+      supportsAllDrives: true,
+      timeout: 30 * 60 * 1000 // 30 minutes timeout for mobile
+    });
+
+    const uploadDuration = Date.now() - uploadStart;
+    console.log("[UPLOAD DEBUG] Google Drive upload completed successfully", {
+      timestamp: new Date().toISOString(),
+      duration: uploadDuration,
+      driveFileId: response.data.id,
+      driveFileName: response.data.name,
+      driveFileSize: response.data.size,
+      driveMimeType: response.data.mimeType
+    });
+
+    return response.data;
+  } catch (error) {
+    const uploadDuration = Date.now() - uploadStart;
+    console.error("[UPLOAD DEBUG] Google Drive upload failed", {
+      timestamp: new Date().toISOString(),
+      duration: uploadDuration,
+      fileName: file.originalname,
+      fileSize: file.size,
+      error: error.message,
+      stack: error.stack,
+      code: error.code,
+      errors: error.errors
+    });
+    throw error;
+  }
 }
 
 export async function getDriveFileStream(fileId, range) {

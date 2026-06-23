@@ -94,13 +94,46 @@ export default function Upload() {
     setUploading(true);
     setProgress(0);
 
+    // Log upload start
+    console.log("[UPLOAD DEBUG] Upload started", {
+      fileCount: files.length,
+      files: files.map(f => ({
+        name: f.file.name,
+        size: f.file.size,
+        type: f.file.type,
+        lastModified: new Date(f.file.lastModified).toISOString()
+      })),
+      formData: Object.fromEntries(form),
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      connection: navigator.connection ? {
+        effectiveType: navigator.connection.effectiveType,
+        downlink: navigator.connection.downlink,
+        rtt: navigator.connection.rtt
+      } : 'Not available'
+    });
+
     try {
       const { data, status } = await api.post("/memories/upload", payload, {
         timeout: 30 * 60 * 1000, // 30 minutes timeout for mobile uploads
         onUploadProgress: (event) => {
-          if (event.total)
-            setProgress(Math.round((event.loaded * 100) / event.total));
+          if (event.total) {
+            const progressPercent = Math.round((event.loaded * 100) / event.total);
+            setProgress(progressPercent);
+            console.log("[UPLOAD DEBUG] Upload progress", {
+              loaded: event.loaded,
+              total: event.total,
+              progress: progressPercent,
+              timestamp: new Date().toISOString()
+            });
+          }
         },
+      });
+
+      console.log("[UPLOAD DEBUG] Upload response received", {
+        status,
+        data,
+        timestamp: new Date().toISOString()
       });
 
       const successCount = data.memories.length;
@@ -109,8 +142,18 @@ export default function Upload() {
       if (status === 207 || failedCount > 0) {
         // Partial success - show which files failed
         const failedNames = data.failedFiles?.map(f => f.fileName).join(", ") || "some files";
+        console.error("[UPLOAD DEBUG] Partial upload failure", {
+          successCount,
+          failedCount,
+          failedFiles: data.failedFiles,
+          timestamp: new Date().toISOString()
+        });
         toast.error(`${successCount} uploaded, ${failedCount} failed: ${failedNames}`);
       } else {
+        console.log("[UPLOAD DEBUG] Upload successful", {
+          successCount,
+          timestamp: new Date().toISOString()
+        });
         toast.success(`${successCount} memories stored`);
       }
 
@@ -119,21 +162,67 @@ export default function Upload() {
         state: { refresh: true },
       });
     } catch (error) {
+      // Comprehensive error logging
+      console.error("[UPLOAD DEBUG] Upload failed", {
+        error,
+        errorMessage: error.message,
+        errorCode: error.code,
+        response: error.response ? {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+          headers: error.response.headers
+        } : null,
+        request: error.config ? {
+          url: error.config.url,
+          method: error.config.method,
+          headers: error.config.headers,
+          timeout: error.config.timeout
+        } : null,
+        stack: error.stack,
+        timestamp: new Date().toISOString(),
+        fileCount: files.length,
+        totalSize: files.reduce((acc, f) => acc + f.file.size, 0)
+      });
+
       const errorMessage = getErrorMessage(error);
       
       // Provide more specific error messages for common mobile upload issues
       if (errorMessage.includes("timeout") || errorMessage.includes("ETIMEDOUT") || error.code === 'ECONNABORTED') {
-        toast.error("Upload timed out. Try a smaller file or better connection.");
+        console.error("[UPLOAD DEBUG] Timeout error detected", {
+          error,
+          timestamp: new Date().toISOString()
+        });
+        toast.error(`Upload timed out. Try a smaller file or better connection. (${error.code || 'ETIMEDOUT'})`);
       } else if (errorMessage.includes("network") || errorMessage.includes("ENET") || errorMessage.includes("connection lost")) {
-        toast.error("Network error. Check your internet and try again.");
+        console.error("[UPLOAD DEBUG] Network error detected", {
+          error,
+          timestamp: new Date().toISOString()
+        });
+        toast.error(`Network error. Check your internet and try again. (${error.code || 'NETWORK_ERROR'})`);
       } else if (errorMessage.includes("file too large") || errorMessage.includes("LIMIT_FILE_SIZE")) {
-        toast.error("File too large. Maximum file size is 500MB.");
+        console.error("[UPLOAD DEBUG] File size error detected", {
+          error,
+          timestamp: new Date().toISOString()
+        });
+        toast.error(`File too large. Maximum file size is 500MB. (${error.code || 'LIMIT_FILE_SIZE'})`);
       } else if (errorMessage.includes("not supported")) {
-        toast.error("File type not supported. Use JPEG, PNG, WebP, GIF, HEIC, HEIF, MP4, WebM, or MOV.");
+        console.error("[UPLOAD DEBUG] File type error detected", {
+          error,
+          timestamp: new Date().toISOString()
+        });
+        toast.error(`File type not supported. Use JPEG, PNG, WebP, GIF, HEIC, HEIF, MP4, WebM, or MOV. (${error.code || 'UNSUPPORTED_TYPE'})`);
       } else {
-        toast.error(errorMessage);
+        console.error("[UPLOAD DEBUG] Unknown error detected", {
+          error,
+          timestamp: new Date().toISOString()
+        });
+        toast.error(`${errorMessage} (${error.code || 'UNKNOWN'})`);
       }
     } finally {
+      console.log("[UPLOAD DEBUG] Upload process ended", {
+        timestamp: new Date().toISOString()
+      });
       setUploading(false);
     }
   }
