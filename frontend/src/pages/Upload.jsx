@@ -38,6 +38,19 @@ export default function Upload() {
     [files],
   );
 
+  // Warn user before leaving during upload
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (uploading) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [uploading]);
+
   const addFiles = useCallback((incoming) => {
     const selected = Array.from(incoming)
       .filter(
@@ -83,22 +96,41 @@ export default function Upload() {
 
     try {
       const { data } = await api.post("/memories/upload", payload, {
-        timeout: 30 * 60 * 1000,
-
+        timeout: 30 * 60 * 1000, // 30 minutes timeout for mobile uploads
         onUploadProgress: (event) => {
           if (event.total)
             setProgress(Math.round((event.loaded * 100) / event.total));
         },
       });
 
-      toast.success(`${data.memories.length} memories stored`);
+      const successCount = data.memories.length;
+      const failedCount = files.length - successCount;
+      
+      if (failedCount > 0) {
+        toast.success(`${successCount} of ${files.length} files uploaded successfully. ${failedCount} files failed.`);
+      } else {
+        toast.success(`${successCount} memories stored`);
+      }
 
       navigate("/gallery", {
         replace: true,
         state: { refresh: true },
       });
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      const errorMessage = getErrorMessage(error);
+      
+      // Provide more specific error messages for common mobile upload issues
+      if (errorMessage.includes("timeout") || errorMessage.includes("ETIMEDOUT")) {
+        toast.error("Upload timed out. Please check your connection and try again.");
+      } else if (errorMessage.includes("network") || errorMessage.includes("ENET")) {
+        toast.error("Network error. Please check your internet connection and try again.");
+      } else if (errorMessage.includes("file too large") || errorMessage.includes("LIMIT_FILE_SIZE")) {
+        toast.error("File too large. Maximum file size is 250MB.");
+      } else if (errorMessage.includes("not supported")) {
+        toast.error("File type not supported. Please use JPEG, PNG, WebP, GIF, HEIC, HEIF, MP4, WebM, or MOV files.");
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setUploading(false);
     }

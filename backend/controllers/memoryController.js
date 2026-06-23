@@ -67,54 +67,60 @@ export async function uploadMemories(req, res, next) {
     const created = [];
 
     for (const file of req.files) {
-      const type = file.mimetype.startsWith("video/") ? "video" : "photo";
-      const driveFile = await uploadToDrive(file, { type, tripName });
-      uploadedDriveIds.push(driveFile.id);
+      try {
+        const type = file.mimetype.startsWith("video/") ? "video" : "photo";
+        const driveFile = await uploadToDrive(file, { type, tripName });
+        uploadedDriveIds.push(driveFile.id);
 
-      const memory = new Memory({
-        fileId: driveFile.id,
-        fileName: driveFile.name || file.originalname,
-        mimeType: driveFile.mimeType || file.mimetype,
-        fileSize: Number(driveFile.size || file.size || 0),
-        type,
-        caption,
-        location,
-        tripName,
-        memoryDate: memoryDate || new Date(),
-        uploadedBy: req.user._id
-      });
-      memory.previewUrl = `/api/memories/${memory._id}/media`;
-      memory.downloadUrl = `/api/memories/${memory._id}/download`;
-      
-      // Handle video processing
-      if (type === "video") {
-        const isCompatible = isBrowserCompatible(file.mimetype);
-        memory.conversionStatus = isCompatible ? "completed" : "pending";
-        
-        // Generate thumbnail
-        try {
-          const thumbnailPath = await generateThumbnail(file.path, memory._id.toString());
-          memory.thumbnailUrl = `/api/memories/${memory._id}/thumbnail`;
-        } catch (error) {
-          console.error("Thumbnail generation failed:", error);
-        }
-      }
-      
-      await memory.save();
-      created.push(serializeMemory(memory, req));
-      
-      // Async video conversion for non-compatible formats
-      if (type === "video" && memory.conversionStatus === "pending") {
-        // Don't add to cleanup - conversion will handle it
-        processVideoConversion(memory._id, file.path).catch(err => {
-          console.error("Video conversion failed:", err);
-          Memory.findByIdAndUpdate(memory._id, { conversionStatus: "failed" }).catch();
-          // Cleanup file if conversion fails
-          unlink(file.path).catch(() => {});
+        const memory = new Memory({
+          fileId: driveFile.id,
+          fileName: driveFile.name || file.originalname,
+          mimeType: driveFile.mimeType || file.mimetype,
+          fileSize: Number(driveFile.size || file.size || 0),
+          type,
+          caption,
+          location,
+          tripName,
+          memoryDate: memoryDate || new Date(),
+          uploadedBy: req.user._id
         });
-      } else {
-        // Add to cleanup for photos and compatible videos
-        if (file.path) filesToCleanup.push(file.path);
+        memory.previewUrl = `/api/memories/${memory._id}/media`;
+        memory.downloadUrl = `/api/memories/${memory._id}/download`;
+        
+        // Handle video processing
+        if (type === "video") {
+          const isCompatible = isBrowserCompatible(file.mimetype);
+          memory.conversionStatus = isCompatible ? "completed" : "pending";
+          
+          // Generate thumbnail
+          try {
+            const thumbnailPath = await generateThumbnail(file.path, memory._id.toString());
+            memory.thumbnailUrl = `/api/memories/${memory._id}/thumbnail`;
+          } catch (error) {
+            console.error("Thumbnail generation failed:", error);
+          }
+        }
+        
+        await memory.save();
+        created.push(serializeMemory(memory, req));
+        
+        // Async video conversion for non-compatible formats
+        if (type === "video" && memory.conversionStatus === "pending") {
+          // Don't add to cleanup - conversion will handle it
+          processVideoConversion(memory._id, file.path).catch(err => {
+            console.error("Video conversion failed:", err);
+            Memory.findByIdAndUpdate(memory._id, { conversionStatus: "failed" }).catch();
+            // Cleanup file if conversion fails
+            unlink(file.path).catch(() => {});
+          });
+        } else {
+          // Add to cleanup for photos and compatible videos
+          if (file.path) filesToCleanup.push(file.path);
+        }
+      } catch (fileError) {
+        console.error(`Failed to upload file ${file.originalname}:`, fileError);
+        // Continue with other files even if one fails
+        // The file will be cleaned up in the finally block
       }
     }
 
