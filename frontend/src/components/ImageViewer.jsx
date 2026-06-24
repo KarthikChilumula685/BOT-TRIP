@@ -17,10 +17,12 @@ import { format } from "date-fns";
 import { useEffect, useState, useRef } from "react";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
 import useProtectedMedia from "../hooks/useProtectedMedia";
 import api, { downloadMemory, getErrorMessage } from "../services/api";
 import Avatar from "./Avatar";
 import EditMemoryDialog from "./EditMemoryDialog";
+import DeleteMemoryDialog from "./DeleteMemoryDialog";
 import Loader from "./Loader";
 
 export default function ImageViewer({
@@ -32,11 +34,13 @@ export default function ImageViewer({
   onDelete,
 }) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { url, loading, error, errorDetails } = useProtectedMedia(memory?._id);
   const videoRef = useRef(null);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState("");
   const [showReactionPicker, setShowReactionPicker] = useState(null);
@@ -145,6 +149,18 @@ export default function ImageViewer({
       toast.error(getErrorMessage(error), { id: toastId });
     }
   }
+
+  const handleDeleteSuccess = () => {
+    // Invalidate all relevant caches
+    queryClient.invalidateQueries({ queryKey: ["memories"] });
+    queryClient.invalidateQueries({ queryKey: ["trip-memories", memory.tripId] });
+    queryClient.invalidateQueries({ queryKey: ["trips"] });
+    
+    // Call the parent onDelete callback
+    if (onDelete) {
+      onDelete();
+    }
+  };
 
   if (!memory) return null;
   const canDelete =
@@ -365,12 +381,14 @@ export default function ImageViewer({
 
             {canDelete && (
               <button
-                onClick={() => onDelete(memory)}
+                onClick={() => setShowDeleteDialog(true)}
                 className="
           text-red-400
+          hover:text-red-600
+          transition
           "
               >
-                <Trash2 />
+                <Trash2 size={20} />
               </button>
             )}
           </div>
@@ -842,6 +860,15 @@ export default function ImageViewer({
         memory={memory}
         onClose={() => setShowEditDialog(false)}
         onUpdate={onUpdate}
+      />
+    )}
+
+    {showDeleteDialog && (
+      <DeleteMemoryDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        memory={memory}
+        onDeleteSuccess={handleDeleteSuccess}
       />
     )}
     </>

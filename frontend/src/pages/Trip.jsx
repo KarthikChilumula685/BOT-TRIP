@@ -15,10 +15,12 @@ import { getErrorMessage } from "../services/api";
 export default function Trip() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [selectedMemory, setSelectedMemory] = useState(null);
   const [filter, setFilter] = useState("all");
   const [sort, setSort] = useState("newest");
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
 
   const { data: trip, isLoading: tripLoading } = useQuery({

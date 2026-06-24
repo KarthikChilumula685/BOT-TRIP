@@ -1,6 +1,7 @@
 import Trip from "../models/Trip.js";
 import Memory from "../models/Memory.js";
 import User from "../models/User.js";
+import { deleteFromDrive } from "../config/googleDrive.js";
 
 // Helper function to select random cover photo
 async function updateTripCoverPhoto(tripId) {
@@ -206,15 +207,38 @@ export async function deleteTrip(req, res, next) {
       return res.status(404).json({ message: "Trip not found" });
     }
 
-    // Update all memories in this trip to remove tripId
-    await Memory.updateMany(
-      { tripId: trip._id },
-      { $unset: { tripId: "" } }
-    );
+    // Permission check: only creator or admin can delete
+    if (trip.createdBy.toString() !== req.user._id.toString() && req.user.role !== "admin") {
+      return res.status(403).json({ message: "You don't have permission to delete this trip" });
+    }
 
+    // Find all memories in this trip
+    const memories = await Memory.find({ tripId: trip._id }).lean();
+
+    // Delete all Google Drive files for these memories
+    const deleteFilePromises = memories.map(async (memory) => {
+      try {
+        if (memory.fileId) {
+          await deleteFromDrive(memory.fileId);
+        }
+      } catch (error) {
+        console.error(`Failed to delete file ${memory.fileId} from Drive:`, error);
+        // Continue with deletion even if file deletion fails
+      }
+    });
+
+    await Promise.all(deleteFilePromises);
+
+    // Delete all memory records (this cascades to embedded comments, likes, reactions)
+    await Memory.deleteMany({ tripId: trip._id });
+
+    // Delete the trip itself
     await Trip.deleteOne({ _id: trip._id });
 
-    res.json({ message: "Trip deleted successfully" });
+    res.json({ 
+      message: "Trip and all associated memories deleted successfully",
+      deletedMemoriesCount: memories.length
+    });
   } catch (error) {
     next(error);
   }
