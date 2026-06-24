@@ -1,13 +1,14 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { ArrowLeft, CloudUpload, Calendar, MapPin, Images, Video, Filter, SortDesc } from "lucide-react";
+import { ArrowLeft, CloudUpload, Calendar, MapPin, Images, Video, Filter, SortDesc, Trash2 } from "lucide-react";
 import { useState } from "react";
 import api from "../services/api";
 import Loader from "../components/Loader";
 import MemoryCard from "../components/MemoryCard";
 import ImageViewer from "../components/ImageViewer";
-import UploadModal from "../components/UploadModal";
+import TripUploadModal from "../components/TripUploadModal";
+import DeleteTripDialog from "../components/DeleteTripDialog";
 import toast from "react-hot-toast";
 import { getErrorMessage } from "../services/api";
 
@@ -18,6 +19,7 @@ export default function Trip() {
   const [filter, setFilter] = useState("all");
   const [sort, setSort] = useState("newest");
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+
 
   const { data: trip, isLoading: tripLoading } = useQuery({
     queryKey: ["trip", id],
@@ -49,6 +51,17 @@ export default function Trip() {
 
   const handleUpdate = () => {
     refetch();
+  };
+
+  const handleDeleteSuccess = () => {
+    // Invalidate all relevant caches
+    queryClient.invalidateQueries({ queryKey: ["trips"] });
+    queryClient.invalidateQueries({ queryKey: ["trip", id] });
+    queryClient.invalidateQueries({ queryKey: ["trip-memories", id] });
+    queryClient.invalidateQueries({ queryKey: ["memories"] });
+    
+    // Navigate to dashboard after successful deletion
+    navigate("/dashboard");
   };
 
   const formatDateRange = () => {
@@ -95,13 +108,22 @@ export default function Trip() {
             </div>
           )}
         </div>
-        <button
-          onClick={() => setIsUploadModalOpen(true)}
-          className="flex items-center gap-2 rounded-full bg-gray-900 px-5 py-2.5 text-white hover:bg-gray-800"
-        >
-          <CloudUpload size={18} />
-          <span className="hidden sm:inline">Upload</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsDeleteDialogOpen(true)}
+            className="flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2.5 text-red-600 hover:bg-red-100"
+          >
+            <Trash2 size={18} />
+            <span className="hidden sm:inline">Delete</span>
+          </button>
+          <button
+            onClick={() => setIsUploadModalOpen(true)}
+            className="flex items-center gap-2 rounded-full bg-gray-900 px-5 py-2.5 text-white hover:bg-gray-800"
+          >
+            <CloudUpload size={18} />
+            <span className="hidden sm:inline">Upload</span>
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -199,11 +221,20 @@ export default function Trip() {
       )}
 
       {/* Upload Modal */}
-      <UploadModal
+      <TripUploadModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         tripId={id}
+        onUploadSuccess={() => refetch()}
+      />
+
+      {/* Delete Trip Dialog */}
+      <DeleteTripDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        tripId={id}
         tripName={trip?.name}
+        onDeleteSuccess={handleDeleteSuccess}
       />
     </div>
   );
