@@ -1,4 +1,4 @@
-import { Heart, MapPin, Play, Clock, CheckCircle, AlertCircle, Edit2, Folder } from "lucide-react";
+import { Heart, MapPin, Play, Clock, CheckCircle, AlertCircle, Folder } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { format } from "date-fns";
 import { useState, useRef } from "react";
@@ -8,13 +8,11 @@ import { useAuth } from "../context/AuthContext";
 import useProtectedMedia from "../hooks/useProtectedMedia";
 
 import Avatar from "./Avatar";
-import EditMemoryDialog from "./EditMemoryDialog";
 import Loader from "./Loader";
 
 export default function MemoryCard({ memory, onClick, onLike, onUpdate }) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [showEditDialog, setShowEditDialog] = useState(false);
   const videoRef = useRef(null);
 
   const {
@@ -276,18 +274,6 @@ text-gray-400
         {/* LIKE */}
 
         <div className="absolute right-4 bottom-4 flex items-center gap-2">
-          {(memory.uploadedBy._id === user._id || user.role === "admin") && (
-            <button
-              onClick={(event) => {
-                event.stopPropagation();
-                setShowEditDialog(true);
-              }}
-              className="flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-2 text-xs shadow backdrop-blur hover:bg-white transition-colors"
-            >
-              <Edit2 size={14} />
-            </button>
-          )}
-
           <button
             onClick={(event) => {
               event.stopPropagation();
@@ -414,14 +400,6 @@ text-orange-400
             </p>
           )}
         </div>
-      )}
-
-      {showEditDialog && (
-        <EditMemoryDialog
-          memory={memory}
-          onClose={() => setShowEditDialog(false)}
-          onUpdate={onUpdate}
-        />
       )}
     </motion.article>
   );

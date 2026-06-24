@@ -12,8 +12,20 @@ export default function EditMemoryDialog({ memory, onClose, onUpdate }) {
   });
   const [loading, setLoading] = useState(false);
 
+  console.log("[EDIT DIALOG] EditMemoryDialog rendered", {
+    memoryId: memory._id,
+    currentForm: form
+  });
+
   // Sync form state when memory prop changes
   useEffect(() => {
+    console.log("[EDIT DIALOG] Memory prop changed, syncing form", {
+      memoryId: memory._id,
+      title: memory.title,
+      caption: memory.caption,
+      location: memory.location,
+      memoryDate: memory.memoryDate
+    });
     setForm({
       title: memory.title || "",
       caption: memory.caption || "",
@@ -26,12 +38,26 @@ export default function EditMemoryDialog({ memory, onClose, onUpdate }) {
     e.preventDefault();
     setLoading(true);
 
+    console.log("[EDIT DIALOG] Submitting edit", {
+      memoryId: memory._id,
+      formData: form
+    });
+
     try {
       const { data } = await api.put(`/memories/${memory._id}`, form);
+      console.log("[EDIT DIALOG] Edit successful", {
+        memoryId: memory._id,
+        updatedData: data
+      });
       toast.success("Memory updated successfully");
       onUpdate(data);
       onClose();
     } catch (error) {
+      console.error("[EDIT DIALOG] Edit failed", {
+        memoryId: memory._id,
+        error: error.message,
+        response: error.response?.data
+      });
       toast.error(getErrorMessage(error));
     } finally {
       setLoading(false);
