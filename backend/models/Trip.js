@@ -42,7 +42,7 @@ const tripSchema = new mongoose.Schema(
     },
     isPublic: {
       type: Boolean,
-      default: false
+      default: true
     }
   },
   { timestamps: true }

@@ -22,7 +22,9 @@ function serializeMemory(memory, req) {
     ...item,
     previewUrl: `${base}/media`,
     downloadUrl: `${base}/download`,
-    thumbnailUrl: item.thumbnailUrl ? `${base}/thumbnail` : ""
+    thumbnailUrl: item.thumbnailUrl ? `${base}/thumbnail` : "",
+    tripName: item.tripName || null,
+    tripId: item.tripId || null
   };
 }
 
@@ -96,6 +98,16 @@ export async function uploadMemories(req, res, next) {
     } = req.body;
     const created = [];
 
+    // Validate trip exists if tripId is provided
+    if (tripId && tripId.trim() !== "") {
+      const Trip = (await import("../models/Trip.js")).default;
+      const trip = await Trip.findById(tripId);
+      
+      if (!trip) {
+        return res.status(404).json({ message: "Trip not found" });
+      }
+    }
+
     for (const file of req.files) {
       const fileStartTime = Date.now();
       console.log(`[UPLOAD DEBUG] Processing file: ${file.originalname}`, {
@@ -168,7 +180,13 @@ export async function uploadMemories(req, res, next) {
         console.log(`[UPLOAD DEBUG] Memory saved successfully: ${file.originalname}`, {
           memoryId: memory._id
         });
-        
+
+        // Update trip cover photo if this is a photo and belongs to a trip
+        if (type === "photo" && tripId) {
+          const { updateTripCoverPhoto } = await import("./tripController.js");
+          await updateTripCoverPhoto(tripId);
+        }
+
         created.push(serializeMemory(memory, req));
         
         const fileDuration = Date.now() - fileStartTime;
@@ -498,9 +516,19 @@ export async function deleteMemory(req, res, next) {
       return res.status(403).json({ message: "You cannot remove this memory" });
     }
 
+    const tripId = memory.tripId;
+    const memoryType = memory.type;
+
     await deleteFromDrive(memory.fileId);
     await memory.deleteOne();
     console.log(`Memory ${memory._id} deleted by user ${req.user._id}`);
+
+    // Update trip cover photo if this was a photo and belonged to a trip
+    if (memoryType === "photo" && tripId) {
+      const { updateTripCoverPhoto } = await import("./tripController.js");
+      await updateTripCoverPhoto(tripId);
+    }
+
     res.json({ message: "Memory removed" });
   } catch (error) {
     next(error);

@@ -1,5 +1,35 @@
 import Trip from "../models/Trip.js";
 import Memory from "../models/Memory.js";
+import User from "../models/User.js";
+
+// Helper function to select random cover photo
+async function updateTripCoverPhoto(tripId) {
+  try {
+    // Find all photos in this trip
+    const photos = await Memory.find({
+      tripId: tripId,
+      type: "photo"
+    })
+      .lean();
+
+    const trip = await Trip.findById(tripId);
+
+    if (photos.length > 0) {
+      // Select a random photo as cover
+      const randomIndex = Math.floor(Math.random() * photos.length);
+      trip.coverPhotoId = photos[randomIndex]._id;
+    } else {
+      // No photos in the trip, clear cover
+      trip.coverPhotoId = null;
+    }
+
+    await trip.save();
+    return trip.coverPhotoId;
+  } catch (error) {
+    console.error("Error updating trip cover photo:", error);
+    return null;
+  }
+}
 
 function serializeTrip(trip) {
   return {
@@ -32,7 +62,7 @@ export async function createTrip(req, res, next) {
       endDate: endDate || null,
       location: location?.trim() || "",
       createdBy: req.user._id,
-      isPublic: isPublic || false
+      isPublic: isPublic !== undefined ? isPublic : true
     });
 
     await trip.save();
@@ -45,11 +75,11 @@ export async function createTrip(req, res, next) {
 
 export async function getTrips(req, res, next) {
   try {
-    const trips = await Trip.find({ createdBy: req.user._id })
+    const trips = await Trip.find({})
       .sort({ createdAt: -1 })
       .lean();
 
-    // Get memory counts for each trip
+    // Get memory counts for each trip and update cover photos
     const tripsWithCounts = await Promise.all(
       trips.map(async (trip) => {
         const photoCount = await Memory.countDocuments({
@@ -73,8 +103,11 @@ export async function getTrips(req, res, next) {
           }
         ]);
 
+        // Update cover photo with random selection
+        const updatedCoverId = await updateTripCoverPhoto(trip._id);
+
         return {
-          ...serializeTrip(trip),
+          ...serializeTrip({ ...trip, coverPhotoId: updatedCoverId }),
           photoCount,
           videoCount,
           dateRange: dateRange[0] ? {
@@ -93,10 +126,9 @@ export async function getTrips(req, res, next) {
 
 export async function getTrip(req, res, next) {
   try {
-    const trip = await Trip.findOne({
-      _id: req.params.id,
-      createdBy: req.user._id
-    });
+    const trip = await Trip.findById(req.params.id)
+      .populate("createdBy", "name avatar")
+      .lean();
 
     if (!trip) {
       return res.status(404).json({ message: "Trip not found" });
@@ -144,10 +176,7 @@ export async function updateTrip(req, res, next) {
   try {
     const { name, description, startDate, endDate, location, isPublic, coverPhotoId } = req.body;
 
-    const trip = await Trip.findOne({
-      _id: req.params.id,
-      createdBy: req.user._id
-    });
+    const trip = await Trip.findById(req.params.id);
 
     if (!trip) {
       return res.status(404).json({ message: "Trip not found" });
@@ -171,10 +200,7 @@ export async function updateTrip(req, res, next) {
 
 export async function deleteTrip(req, res, next) {
   try {
-    const trip = await Trip.findOne({
-      _id: req.params.id,
-      createdBy: req.user._id
-    });
+    const trip = await Trip.findById(req.params.id);
 
     if (!trip) {
       return res.status(404).json({ message: "Trip not found" });
@@ -196,10 +222,7 @@ export async function deleteTrip(req, res, next) {
 
 export async function getTripMemories(req, res, next) {
   try {
-    const trip = await Trip.findOne({
-      _id: req.params.id,
-      createdBy: req.user._id
-    });
+    const trip = await Trip.findById(req.params.id).lean();
 
     if (!trip) {
       return res.status(404).json({ message: "Trip not found" });

@@ -1,7 +1,8 @@
-import { Heart, MapPin, Play, Clock, CheckCircle, AlertCircle, Edit2 } from "lucide-react";
+import { Heart, MapPin, Play, Clock, CheckCircle, AlertCircle, Edit2, Folder } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { format } from "date-fns";
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
 import useProtectedMedia from "../hooks/useProtectedMedia";
@@ -12,6 +13,7 @@ import Loader from "./Loader";
 
 export default function MemoryCard({ memory, onClick, onLike, onUpdate }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [showEditDialog, setShowEditDialog] = useState(false);
   const videoRef = useRef(null);
 
@@ -325,7 +327,7 @@ ${liked ? "bg-pink-500 text-white" : "bg-white/85 text-gray-600"}
 
       {/* CAPTION AREA */}
 
-      {(memory.title || memory.caption || memory.location) && (
+      {(memory.title || memory.caption || memory.location || memory.tripName) && (
         <div
           className="
 space-y-3
@@ -354,6 +356,40 @@ text-gray-700
 "
             >
               {memory.caption}
+            </p>
+          )}
+
+          {memory.tripName ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/trip/${memory.tripId}`);
+              }}
+              className="
+flex
+items-center
+gap-2
+text-xs
+text-orange-500
+hover:text-orange-600
+transition-colors
+"
+            >
+              <Folder size={14} />
+              {memory.tripName}
+            </button>
+          ) : (
+            <p
+              className="
+flex
+items-center
+gap-2
+text-xs
+text-gray-400
+"
+            >
+              <Folder size={14} />
+              No Collection
             </p>
           )}
 

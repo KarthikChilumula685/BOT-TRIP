@@ -103,7 +103,7 @@ export default function Trip() {
       </div>
 
       {/* Stats */}
-      <div className="flex gap-6 rounded-2xl bg-white p-6 shadow-md">
+      <div className="flex flex-wrap gap-6 rounded-2xl bg-white p-6 shadow-md">
         <div className="flex items-center gap-2">
           <Images size={20} className="text-orange-500" />
           <span className="text-lg font-semibold text-gray-900">{trip.photoCount || 0}</span>

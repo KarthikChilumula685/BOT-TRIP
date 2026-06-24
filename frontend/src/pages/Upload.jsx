@@ -119,7 +119,7 @@ export default function Upload() {
         type: f.file.type,
         lastModified: new Date(f.file.lastModified).toISOString()
       })),
-      formData: Object.fromEntries(form),
+      formData: form,
       timestamp: new Date().toISOString(),
       userAgent: navigator.userAgent,
       connection: navigator.connection ? {
@@ -491,6 +491,52 @@ text-gray-900
           </h2>
 
           <div className="mt-6 space-y-5">
+            <label className="block">
+              <span
+                className="
+text-sm text-gray-600
+"
+              >
+                Trip
+              </span>
+
+              <div className="relative mt-2">
+                <select
+                  value={form.tripId}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      tripId: e.target.value,
+                    })
+                  }
+                  className="
+w-full
+
+rounded-xl
+
+border
+
+bg-gray-50
+
+px-4
+
+py-3
+
+text-gray-900
+
+outline-none
+"
+                >
+                  <option value="">Select a trip (optional)</option>
+                  {trips?.map((trip) => (
+                    <option key={trip._id} value={trip._id}>
+                      {trip.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </label>
+
             <label>
               <span
                 className="
@@ -629,7 +675,7 @@ outline-none
           </div>
 
           <button
-            disabled={uploading || !files.length || !form.tripId}
+            disabled={uploading || !files.length}
             className="
 mt-8
 

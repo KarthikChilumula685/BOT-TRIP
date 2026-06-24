@@ -93,39 +93,39 @@ export default function TripCard({ trip, onClick, onUpdate, onDelete }) {
 
         {/* Menu Button */}
         <div className="absolute right-2 top-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowMenu(!showMenu);
-            }}
-            className="rounded-full bg-white/90 p-2 text-gray-600 shadow-md transition-colors hover:bg-white hover:text-gray-900"
-          >
-            <MoreVertical size={18} />
-          </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMenu(!showMenu);
+              }}
+              className="rounded-full bg-white/90 p-2 text-gray-600 shadow-md transition-colors hover:bg-white hover:text-gray-900"
+            >
+              <MoreVertical size={18} />
+            </button>
 
-          {showMenu && (
-            <div className="absolute right-0 top-full mt-2 w-48 rounded-xl bg-white py-2 shadow-xl">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onUpdate?.(trip);
-                  setShowMenu(false);
-                }}
-                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-              >
-                <Edit2 size={16} />
-                Edit Trip
-              </button>
-              <button
-                onClick={handleDelete}
-                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
-              >
-                <Trash2 size={16} />
-                Delete Trip
-              </button>
-            </div>
-          )}
-        </div>
+            {showMenu && (
+              <div className="absolute right-0 top-full mt-2 w-48 rounded-xl bg-white py-2 shadow-xl">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onUpdate?.(trip);
+                    setShowMenu(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <Edit2 size={16} />
+                  Edit Trip
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 size={16} />
+                  Delete Trip
+                </button>
+              </div>
+            )}
+          </div>
       </div>
     </motion.div>
   );

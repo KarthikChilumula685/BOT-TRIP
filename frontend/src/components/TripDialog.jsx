@@ -11,7 +11,7 @@ export default function TripDialog({ trip, onClose, onSave }) {
     location: trip?.location || "",
     startDate: trip?.startDate ? new Date(trip.startDate).toISOString().split('T')[0] : "",
     endDate: trip?.endDate ? new Date(trip.endDate).toISOString().split('T')[0] : "",
-    isPublic: trip?.isPublic || false
+    isPublic: trip?.isPublic !== undefined ? trip.isPublic : true
   });
   const [loading, setLoading] = useState(false);
 
@@ -83,7 +83,7 @@ export default function TripDialog({ trip, onClose, onSave }) {
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="e.g., Goa Trip 2026"
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
                 required
               />
             </div>
@@ -97,7 +97,7 @@ export default function TripDialog({ trip, onClose, onSave }) {
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 placeholder="Add a description for your trip..."
                 rows={3}
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
               />
             </div>
 
@@ -112,7 +112,7 @@ export default function TripDialog({ trip, onClose, onSave }) {
                   value={form.location}
                   onChange={(e) => setForm({ ...form, location: e.target.value })}
                   placeholder="e.g., Goa, India"
-                  className="w-full rounded-xl border border-gray-200 pl-11 pr-4 py-3 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                  className="w-full rounded-xl border border-gray-200 bg-white pl-11 pr-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
                 />
               </div>
             </div>
@@ -128,7 +128,7 @@ export default function TripDialog({ trip, onClose, onSave }) {
                     type="date"
                     value={form.startDate}
                     onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                    className="w-full rounded-xl border border-gray-200 pl-11 pr-4 py-3 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                    className="w-full rounded-xl border border-gray-200 bg-white pl-11 pr-4 py-3 text-gray-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
                   />
                 </div>
               </div>
@@ -143,7 +143,7 @@ export default function TripDialog({ trip, onClose, onSave }) {
                     type="date"
                     value={form.endDate}
                     onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                    className="w-full rounded-xl border border-gray-200 pl-11 pr-4 py-3 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                    className="w-full rounded-xl border border-gray-200 bg-white pl-11 pr-4 py-3 text-gray-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
                   />
                 </div>
               </div>
@@ -166,14 +166,14 @@ export default function TripDialog({ trip, onClose, onSave }) {
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 rounded-xl border border-gray-200 px-4 py-3 font-medium text-gray-700 hover:bg-gray-50"
+                className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-3 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 rounded-xl bg-gray-900 px-4 py-3 font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+                className="flex-1 rounded-xl bg-gray-900 px-4 py-3 font-medium text-white hover:bg-gray-800 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-gray-700 disabled:cursor-not-allowed"
               >
                 {loading ? "Saving..." : trip ? "Update Trip" : "Create Trip"}
               </button>
