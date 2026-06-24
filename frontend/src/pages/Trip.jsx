@@ -7,6 +7,7 @@ import api from "../services/api";
 import Loader from "../components/Loader";
 import MemoryCard from "../components/MemoryCard";
 import ImageViewer from "../components/ImageViewer";
+import UploadModal from "../components/UploadModal";
 import toast from "react-hot-toast";
 import { getErrorMessage } from "../services/api";
 
@@ -16,6 +17,7 @@ export default function Trip() {
   const [selectedMemory, setSelectedMemory] = useState(null);
   const [filter, setFilter] = useState("all");
   const [sort, setSort] = useState("newest");
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   const { data: trip, isLoading: tripLoading } = useQuery({
     queryKey: ["trip", id],
@@ -94,7 +96,7 @@ export default function Trip() {
           )}
         </div>
         <button
-          onClick={() => navigate(`/upload?tripId=${id}`)}
+          onClick={() => setIsUploadModalOpen(true)}
           className="flex items-center gap-2 rounded-full bg-gray-900 px-5 py-2.5 text-white hover:bg-gray-800"
         >
           <CloudUpload size={18} />
@@ -166,7 +168,7 @@ export default function Trip() {
           <h3 className="text-xl font-semibold text-gray-900">No memories yet</h3>
           <p className="mt-2 text-gray-500">Upload your first photo or video to this trip</p>
           <button
-            onClick={() => navigate(`/upload?tripId=${id}`)}
+            onClick={() => setIsUploadModalOpen(true)}
             className="mt-4 inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-white hover:bg-gray-800"
           >
             <CloudUpload size={18} />
@@ -195,6 +197,14 @@ export default function Trip() {
           }}
         />
       )}
+
+      {/* Upload Modal */}
+      <UploadModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        tripId={id}
+        tripName={trip?.name}
+      />
     </div>
   );
 }
