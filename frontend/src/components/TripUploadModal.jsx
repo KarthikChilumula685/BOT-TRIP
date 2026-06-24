@@ -16,6 +16,57 @@ import api, { getErrorMessage } from "../services/api";
 const acceptedTypes =
   "image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,video/mp4,video/webm,video/quicktime,video/x-m4v,video/avi,video/mov,video/wmv,video/flv,video/mkv,video/3gpp,video/3gpp2,video/x-msvideo,video/x-matroska";
 
+// Cross-browser random ID generator
+function generateId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback for browsers without crypto.randomUUID
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+// Helper function to get browser name
+function getBrowserName() {
+  const userAgent = navigator.userAgent;
+  if (userAgent.includes('Firefox')) return 'Firefox';
+  if (userAgent.includes('Chrome')) return 'Chrome';
+  if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) return 'Safari';
+  if (userAgent.includes('Edge')) return 'Edge';
+  if (userAgent.includes('Opera') || userAgent.includes('OPR')) return 'Opera';
+  if (userAgent.includes('Brave')) return 'Brave';
+  return 'Unknown';
+}
+
+// Helper function to get browser version
+function getBrowserVersion() {
+  const userAgent = navigator.userAgent;
+  const browserName = getBrowserName();
+  let version = 'Unknown';
+  
+  if (browserName === 'Firefox') {
+    const match = userAgent.match(/Firefox\/(\d+\.\d+)/);
+    if (match) version = match[1];
+  } else if (browserName === 'Chrome') {
+    const match = userAgent.match(/Chrome\/(\d+\.\d+\.\d+\.\d+)/);
+    if (match) version = match[1];
+  } else if (browserName === 'Safari') {
+    const match = userAgent.match(/Version\/(\d+\.\d+)/);
+    if (match) version = match[1];
+  } else if (browserName === 'Edge') {
+    const match = userAgent.match(/Edg\/(\d+\.\d+\.\d+\.\d+)/);
+    if (match) version = match[1];
+  } else if (browserName === 'Opera') {
+    const match = userAgent.match(/OPR\/(\d+\.\d+\.\d+\.\d+)/);
+    if (match) version = match[1];
+  }
+  
+  return version;
+}
+
 export default function TripUploadModal({ isOpen, onClose, tripId, onUploadSuccess }) {
   const [files, setFiles] = useState([]);
   const [dragging, setDragging] = useState(false);
@@ -43,7 +94,7 @@ export default function TripUploadModal({ isOpen, onClose, tripId, onUploadSucce
       .slice(0, 20)
       .map((file) => ({
         file,
-        id: `${file.name}-${crypto.randomUUID()}`,
+        id: `${file.name}-${generateId()}`,
         preview: URL.createObjectURL(file),
       }));
 
@@ -74,6 +125,32 @@ export default function TripUploadModal({ isOpen, onClose, tripId, onUploadSucce
     setUploading(true);
     setProgress(0);
 
+    // Log upload start with browser info
+    console.log("[UPLOAD DEBUG] TripUploadModal upload started", {
+      fileCount: files.length,
+      files: files.map(f => ({
+        name: f.file.name,
+        size: f.file.size,
+        type: f.file.type,
+        lastModified: new Date(f.file.lastModified).toISOString()
+      })),
+      formData: form,
+      tripId,
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      browser: {
+        name: getBrowserName(),
+        version: getBrowserVersion()
+      },
+      isMobile: /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent),
+      connection: navigator.connection ? {
+        effectiveType: navigator.connection.effectiveType,
+        downlink: navigator.connection.downlink,
+        rtt: navigator.connection.rtt,
+        saveData: navigator.connection.saveData
+      } : 'Not available'
+    });
+
     try {
       const { data, status } = await api.post("/memories/upload", payload, {
         timeout: 30 * 60 * 1000,
@@ -81,8 +158,21 @@ export default function TripUploadModal({ isOpen, onClose, tripId, onUploadSucce
           if (event.total) {
             const progressPercent = Math.round((event.loaded * 100) / event.total);
             setProgress(progressPercent);
+            console.log("[UPLOAD DEBUG] Upload progress", {
+              loaded: event.loaded,
+              total: event.total,
+              progress: progressPercent,
+              timestamp: new Date().toISOString()
+            });
           }
         },
+      });
+
+      console.log("[UPLOAD DEBUG] Upload response received", {
+        status,
+        successCount: data.memories?.length || 0,
+        failedCount: data.failedFiles?.length || 0,
+        timestamp: new Date().toISOString()
       });
 
       const successCount = data.memories?.length || 0;
@@ -115,6 +205,20 @@ export default function TripUploadModal({ isOpen, onClose, tripId, onUploadSucce
       setProgress(0);
       onClose();
     } catch (error) {
+      console.error("[UPLOAD DEBUG] Upload error in TripUploadModal", {
+        error: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        responseData: error.response?.data,
+        stack: error.stack,
+        timestamp: new Date().toISOString(),
+        browser: {
+          name: getBrowserName(),
+          version: getBrowserVersion()
+        },
+        isMobile: /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent)
+      });
       toast.error(getErrorMessage(error));
     } finally {
       setUploading(false);

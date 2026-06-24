@@ -20,6 +20,57 @@ import TripDialog from "../components/TripDialog";
 const acceptedTypes =
   "image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,video/mp4,video/webm,video/quicktime,video/x-m4v,video/avi,video/mov,video/wmv,video/flv,video/mkv,video/3gpp,video/3gpp2,video/x-msvideo,video/x-matroska";
 
+// Cross-browser random ID generator
+function generateId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback for browsers without crypto.randomUUID
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+// Helper function to get browser name
+function getBrowserName() {
+  const userAgent = navigator.userAgent;
+  if (userAgent.includes('Firefox')) return 'Firefox';
+  if (userAgent.includes('Chrome')) return 'Chrome';
+  if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) return 'Safari';
+  if (userAgent.includes('Edge')) return 'Edge';
+  if (userAgent.includes('Opera') || userAgent.includes('OPR')) return 'Opera';
+  if (userAgent.includes('Brave')) return 'Brave';
+  return 'Unknown';
+}
+
+// Helper function to get browser version
+function getBrowserVersion() {
+  const userAgent = navigator.userAgent;
+  const browserName = getBrowserName();
+  let version = 'Unknown';
+  
+  if (browserName === 'Firefox') {
+    const match = userAgent.match(/Firefox\/(\d+\.\d+)/);
+    if (match) version = match[1];
+  } else if (browserName === 'Chrome') {
+    const match = userAgent.match(/Chrome\/(\d+\.\d+\.\d+\.\d+)/);
+    if (match) version = match[1];
+  } else if (browserName === 'Safari') {
+    const match = userAgent.match(/Version\/(\d+\.\d+)/);
+    if (match) version = match[1];
+  } else if (browserName === 'Edge') {
+    const match = userAgent.match(/Edg\/(\d+\.\d+\.\d+\.\d+)/);
+    if (match) version = match[1];
+  } else if (browserName === 'Opera') {
+    const match = userAgent.match(/OPR\/(\d+\.\d+\.\d+\.\d+)/);
+    if (match) version = match[1];
+  }
+  
+  return version;
+}
+
 export default function Upload() {
   const [files, setFiles] = useState([]);
   const [dragging, setDragging] = useState(false);
@@ -77,7 +128,7 @@ export default function Upload() {
       .slice(0, 20)
       .map((file) => ({
         file,
-        id: `${file.name}-${crypto.randomUUID()}`,
+        id: `${file.name}-${generateId()}`,
         preview: URL.createObjectURL(file),
       }));
 
@@ -111,8 +162,8 @@ export default function Upload() {
     setUploading(true);
     setProgress(0);
 
-    // Log upload start
-    console.log("[UPLOAD DEBUG] Upload started", {
+    // Log upload start with browser info
+    console.log("[UPLOAD DEBUG] Upload page upload started", {
       fileCount: files.length,
       files: files.map(f => ({
         name: f.file.name,
@@ -123,10 +174,16 @@ export default function Upload() {
       formData: form,
       timestamp: new Date().toISOString(),
       userAgent: navigator.userAgent,
+      browser: {
+        name: getBrowserName(),
+        version: getBrowserVersion()
+      },
+      isMobile: /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent),
       connection: navigator.connection ? {
         effectiveType: navigator.connection.effectiveType,
         downlink: navigator.connection.downlink,
-        rtt: navigator.connection.rtt
+        rtt: navigator.connection.rtt,
+        saveData: navigator.connection.saveData
       } : 'Not available'
     });
 
@@ -150,7 +207,11 @@ export default function Upload() {
       console.log("[UPLOAD DEBUG] Upload response received", {
         status,
         data,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        browser: {
+          name: getBrowserName(),
+          version: getBrowserVersion()
+        }
       });
 
       const successCount = data.memories?.length || 0;
@@ -233,8 +294,8 @@ export default function Upload() {
         });
       }
     } catch (error) {
-      // Comprehensive error logging
-      console.error("[UPLOAD DEBUG] Upload failed", {
+      // Comprehensive error logging with browser info
+      console.error("[UPLOAD DEBUG] Upload failed in Upload page", {
         error,
         errorMessage: error.message,
         errorCode: error.code,
@@ -253,7 +314,13 @@ export default function Upload() {
         stack: error.stack,
         timestamp: new Date().toISOString(),
         fileCount: files.length,
-        totalSize: files.reduce((acc, f) => acc + f.file.size, 0)
+        totalSize: files.reduce((acc, f) => acc + f.file.size, 0),
+        browser: {
+          name: getBrowserName(),
+          version: getBrowserVersion()
+        },
+        isMobile: /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent),
+        userAgent: navigator.userAgent
       });
 
       const errorMessage = getErrorMessage(error);
