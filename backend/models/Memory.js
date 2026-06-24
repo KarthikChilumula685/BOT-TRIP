@@ -66,6 +66,11 @@ const memorySchema = new mongoose.Schema(
     caption: { type: String, trim: true, maxlength: 300, default: "" },
     location: { type: String, trim: true, maxlength: 120, default: "" },
     tripName: { type: String, trim: true, maxlength: 120, default: "" },
+    tripId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Trip",
+      index: true
+    },
     memoryDate: { type: Date, default: Date.now, index: true },
     uploadedBy: {
       type: mongoose.Schema.Types.ObjectId,

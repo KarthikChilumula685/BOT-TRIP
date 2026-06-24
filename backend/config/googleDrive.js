@@ -85,6 +85,20 @@ async function resolveMediaFolder(type, tripName) {
   return { drive, mediaFolderId };
 }
 
+async function resolveProfilePicturesFolder() {
+  const rootId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+  if (!rootId) throw new Error("GOOGLE_DRIVE_FOLDER_ID is not configured");
+
+  const drive = getDriveClient();
+  const profilePicturesFolderId = await findOrCreateFolder(
+    drive,
+    "Profile Pictures",
+    rootId
+  );
+
+  return { drive, profilePicturesFolderId };
+}
+
 export async function uploadToDrive(file, { type, tripName }) {
   const uploadStart = Date.now();
   console.log("[UPLOAD DEBUG] Google Drive upload started", {
@@ -173,4 +187,67 @@ export async function getDriveFileStream(fileId, range) {
 export async function deleteFromDrive(fileId) {
   const drive = getDriveClient();
   await drive.files.delete({ fileId, supportsAllDrives: true });
+}
+
+export async function uploadProfilePhoto(file, userId) {
+  const uploadStart = Date.now();
+  console.log("[PROFILE PHOTO DEBUG] Profile photo upload started", {
+    timestamp: new Date().toISOString(),
+    fileName: file.originalname,
+    fileSize: file.size,
+    mimeType: file.mimetype,
+    userId
+  });
+
+  try {
+    const { drive, profilePicturesFolderId } = await resolveProfilePicturesFolder();
+    console.log("[PROFILE PHOTO DEBUG] Profile Pictures folder resolved", {
+      profilePicturesFolderId
+    });
+
+    // Create a unique filename using userId
+    const fileExtension = file.originalname.split('.').pop();
+    const uniqueFileName = `user_${userId}.${fileExtension}`;
+
+    const response = await drive.files.create({
+      requestBody: {
+        name: uniqueFileName,
+        parents: [profilePicturesFolderId],
+        description: `Profile photo for user ${userId}, uploaded on ${new Date().toISOString()}`
+      },
+      media: {
+        mimeType: file.mimetype,
+        body: createReadStream(file.path)
+      },
+      fields: "id,name,mimeType,size,createdTime",
+      supportsAllDrives: true,
+      timeout: 10 * 60 * 1000 // 10 minutes timeout for profile photos
+    });
+
+    const uploadDuration = Date.now() - uploadStart;
+    console.log("[PROFILE PHOTO DEBUG] Profile photo upload completed successfully", {
+      timestamp: new Date().toISOString(),
+      duration: uploadDuration,
+      driveFileId: response.data.id,
+      driveFileName: response.data.name,
+      driveFileSize: response.data.size,
+      driveMimeType: response.data.mimeType
+    });
+
+    return response.data;
+  } catch (error) {
+    const uploadDuration = Date.now() - uploadStart;
+    console.error("[PROFILE PHOTO DEBUG] Profile photo upload failed", {
+      timestamp: new Date().toISOString(),
+      duration: uploadDuration,
+      fileName: file.originalname,
+      fileSize: file.size,
+      userId,
+      error: error.message,
+      stack: error.stack,
+      code: error.code,
+      errors: error.errors
+    });
+    throw error;
+  }
 }

@@ -1,66 +1,54 @@
 import { motion } from "framer-motion";
 import {
-  ArrowRight,
-  CalendarDays,
-  CloudUpload,
-  Heart,
-  Images,
-  Map,
+  Plus,
   Sparkles,
+  FolderOpen,
+  Calendar,
+  MapPin,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import useMemories from "../hooks/useMemories";
+import { useQuery } from "@tanstack/react-query";
 import EmptyState from "../components/EmptyState";
 import Loader from "../components/Loader";
-import MemoryCard from "../components/MemoryCard";
+import TripCard from "../components/TripCard";
+import TripDialog from "../components/TripDialog";
 import toast from "react-hot-toast";
-import api, { getErrorMessage } from "../services/api";
+import api from "../services/api";
+import { useState } from "react";
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { memories, loading, updateMemory, reload } = useMemories({ limit: 6 });
+  const [showTripDialog, setShowTripDialog] = useState(false);
+  const [editingTrip, setEditingTrip] = useState(null);
 
-  const tripName = import.meta.env.VITE_TRIP_NAME || "Our Trip";
-
-  async function handleLike(memory) {
-    try {
-      const { data } = await api.put(`/memories/${memory._id}/like`);
-
-      updateMemory({
-        ...memory,
-        likes: data.likes,
-      });
-    } catch (error) {
-      toast.error(getErrorMessage(error));
-    }
-  }
-
-  function handleUpdate(memory) {
-    updateMemory(memory);
-    // Reload memories to ensure proper sorting if date was changed
-    reload();
-  }
-
-  const stats = [
-    {
-      label: "Beautiful moments",
-      value: memories.length || "0",
-      icon: Images,
+  const { data: trips, isLoading, refetch } = useQuery({
+    queryKey: ["trips"],
+    queryFn: async () => {
+      const { data } = await api.get("/trips");
+      return data.trips;
     },
+  });
 
-    {
-      label: "Love shared",
-      value: "∞",
-      icon: Heart,
-    },
+  const handleCreateTrip = () => {
+    setEditingTrip(null);
+    setShowTripDialog(true);
+  };
 
-    {
-      label: "Adventure",
-      value: tripName,
-      icon: Map,
-    },
-  ];
+  const handleEditTrip = (trip) => {
+    setEditingTrip(trip);
+    setShowTripDialog(true);
+  };
+
+  const handleTripSaved = () => {
+    setShowTripDialog(false);
+    setEditingTrip(null);
+    refetch();
+  };
+
+  const handleTripDeleted = (tripId) => {
+    refetch();
+  };
 
   return (
     <div className="space-y-10">
@@ -97,8 +85,7 @@ export default function Dashboard() {
             "
           >
             <Sparkles size={18} />
-
-            {tripName}
+            Your Trip Collections
           </motion.p>
 
           <motion.h1
@@ -114,7 +101,7 @@ export default function Dashboard() {
             text-gray-900
             "
           >
-            Hey {user.name.split(" ")[0]}, let's relive those memories again
+            Hey {user.name.split(" ")[0]}, organize your adventures
           </motion.h1>
 
           <p
@@ -125,12 +112,11 @@ export default function Dashboard() {
             leading-7
             "
           >
-            Every laugh, every random click, every beautiful mistake — saved
-            forever with your people.
+            Create trip folders to organize your photos and videos by vacation, event, or adventure.
           </p>
 
-          <Link
-            to="/upload"
+          <button
+            onClick={handleCreateTrip}
             className="
             mt-8 inline-flex
             items-center gap-2
@@ -143,85 +129,13 @@ export default function Dashboard() {
             transition
             "
           >
-            <CloudUpload size={18} />
-            Add Memories
-          </Link>
+            <Plus size={18} />
+            Create New Trip
+          </button>
         </div>
       </section>
 
-      {/* STATS */}
-
-      <div
-        className="
-        grid gap-5
-        sm:grid-cols-3
-        "
-      >
-        {stats.map(({ label, value, icon: Icon }, index) => (
-          <motion.div
-            key={label}
-            initial={{
-              opacity: 0,
-              y: 20,
-            }}
-            animate={{
-              opacity: 1,
-              y: 0,
-            }}
-            transition={{
-              delay: index * 0.1,
-            }}
-            className="
-            rounded-3xl
-            bg-white
-            shadow-md
-            p-6
-            border
-            border-gray-100
-            hover:-translate-y-1
-            transition
-            "
-          >
-            <div
-              className="
-              mb-5
-              h-12 w-12
-              rounded-full
-              bg-orange-100
-              grid place-items-center
-              text-orange-500
-              "
-            >
-              <Icon size={22} />
-            </div>
-
-            <h3
-              className="
-              font-display
-              text-2xl
-              font-bold
-              text-gray-900
-              truncate
-              "
-            >
-              {value}
-            </h3>
-
-            <p
-              className="
-              mt-1
-              text-sm
-              text-gray-500
-              "
-            >
-              {label}
-            </p>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* RECENT */}
-
+      {/* TRIPS GRID */}
       <section>
         <div
           className="
@@ -239,7 +153,7 @@ export default function Dashboard() {
               font-semibold
               "
             >
-              Recently captured
+              Your Collections
             </p>
 
             <h2
@@ -250,12 +164,12 @@ export default function Dashboard() {
               text-gray-900
               "
             >
-              Latest Memories 📸
+              Trip Folders �
             </h2>
           </div>
 
-          <Link
-            to="/gallery"
+          <button
+            onClick={handleCreateTrip}
             className="
             flex
             items-center
@@ -266,84 +180,54 @@ export default function Dashboard() {
             hover:text-black
             "
           >
-            View Album
-            <ArrowRight size={16} />
-          </Link>
+            <Plus size={16} />
+            New Trip
+          </button>
         </div>
 
-        {loading ? (
+        {isLoading ? (
           <Loader />
-        ) : memories.length ? (
-          <div className="masonry">
-            {memories.map((memory) => (
-              <MemoryCard
-                key={memory._id}
-                memory={memory}
-                onClick={() => {}}
-                onLike={handleLike}
-                onUpdate={handleUpdate}
+        ) : trips && trips.length > 0 ? (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {trips.map((trip) => (
+              <TripCard
+                key={trip._id}
+                trip={trip}
+                onClick={() => window.location.href = `/trips/${trip._id}`}
+                onUpdate={handleEditTrip}
+                onDelete={handleTripDeleted}
               />
             ))}
           </div>
         ) : (
-          <EmptyState />
+          <EmptyState
+            icon={FolderOpen}
+            title="No trips yet"
+            description="Create your first trip folder to start organizing your memories"
+            action={
+              <button
+                onClick={handleCreateTrip}
+                className="mt-4 inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-white hover:scale-105 transition"
+              >
+                <Plus size={18} />
+                Create Your First Trip
+              </button>
+            }
+          />
         )}
       </section>
 
-      {/* TIMELINE */}
-
-      <Link
-        to="/timeline"
-        className="
-      flex
-      items-center
-      justify-between
-      rounded-3xl
-      bg-gradient-to-r
-      from-orange-100
-      to-pink-100
-      p-6
-      shadow-md
-      hover:scale-[1.02]
-      transition
-      "
-      >
-        <div className="flex items-center gap-4">
-          <div
-            className="
-      h-14 w-14
-      rounded-full
-      bg-white
-      grid place-items-center
-      text-orange-500
-      "
-          >
-            <CalendarDays />
-          </div>
-
-          <div>
-            <h3
-              className="
-      font-bold
-      text-gray-900
-      "
-            >
-              Walk through our journey
-            </h3>
-
-            <p
-              className="
-      text-sm
-      text-gray-500
-      "
-            >
-              Travel back day by day
-            </p>
-          </div>
-        </div>
-
-        <ArrowRight />
-      </Link>
+      {/* TRIP DIALOG */}
+      {showTripDialog && (
+        <TripDialog
+          trip={editingTrip}
+          onClose={() => {
+            setShowTripDialog(false);
+            setEditingTrip(null);
+          }}
+          onSave={handleTripSaved}
+        />
+      )}
     </div>
   );
 }

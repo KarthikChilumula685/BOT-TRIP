@@ -10,6 +10,7 @@ import { connectDatabase } from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import memoryRoutes from "./routes/memoryRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import tripRoutes from "./routes/tripRoutes.js";
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -79,6 +80,7 @@ app.options("/api/*", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/memories", memoryRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/trips", tripRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ message: "Route not found" });

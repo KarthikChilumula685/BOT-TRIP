@@ -1,3 +1,5 @@
+import useProfilePhoto from "../hooks/useProfilePhoto";
+
 export default function Avatar({ user, size = "md", className = "" }) {
   const sizes = {
     sm: "h-8 w-8 text-xs",
@@ -9,10 +11,12 @@ export default function Avatar({ user, size = "md", className = "" }) {
     xl: "h-28 w-28 text-3xl",
   };
 
-  if (user?.profileImage) {
+  const { url } = useProfilePhoto(user?._id);
+
+  if (user?.profilePhotoId && url) {
     return (
       <img
-        src={user.profileImage}
+        src={url}
         alt={user.name}
         className={`
         

@@ -9,6 +9,7 @@ import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import Register from "./pages/Register";
 import Timeline from "./pages/Timeline";
+import Trip from "./pages/Trip";
 import Upload from "./pages/Upload";
 import UserMemories from "./pages/UserMemories";
 
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/friends" element={<Friends />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/user-memories" element={<UserMemories />} />
+          <Route path="/trips/:id" element={<Trip />} />
         </Route>
       </Route>
 

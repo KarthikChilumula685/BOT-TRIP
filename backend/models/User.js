@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema(
       minlength: 8,
       select: false
     },
-    profileImage: {
+    profilePhotoId: {
       type: String,
       default: ""
     },

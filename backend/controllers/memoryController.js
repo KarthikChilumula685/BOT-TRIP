@@ -66,6 +66,7 @@ export async function uploadMemories(req, res, next) {
       caption: req.body.caption,
       location: req.body.location,
       tripName: req.body.tripName,
+      tripId: req.body.tripId,
       memoryDate: req.body.memoryDate
     }
   });
@@ -90,6 +91,7 @@ export async function uploadMemories(req, res, next) {
       caption = "",
       location = "",
       tripName = process.env.TRIP_NAME || "Trip Memories",
+      tripId,
       memoryDate
     } = req.body;
     const created = [];
@@ -133,6 +135,7 @@ export async function uploadMemories(req, res, next) {
           caption,
           location,
           tripName,
+          tripId: tripId || null,
           memoryDate: memoryDate || new Date(),
           uploadedBy: req.user._id
         });
@@ -292,6 +295,7 @@ export async function getMemories(req, res, next) {
       location,
       date,
       liked,
+      tripId,
       page = 1,
       limit = 24,
       sort = "newest"
@@ -302,6 +306,7 @@ export async function getMemories(req, res, next) {
     if (uploader && mongoose.isValidObjectId(uploader)) filter.uploadedBy = uploader;
     if (location) filter.location = { $regex: location, $options: "i" };
     if (liked === "true") filter.likes = req.user._id;
+    if (tripId && mongoose.isValidObjectId(tripId)) filter.tripId = tripId;
     if (date) {
       const start = new Date(date);
       if (!Number.isNaN(start.getTime())) {

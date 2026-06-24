@@ -7,12 +7,15 @@ import {
   Image,
   MapPin,
   X,
+  FolderPlus,
 } from "lucide-react";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import api, { getErrorMessage } from "../services/api";
+import TripDialog from "../components/TripDialog";
 
 const acceptedTypes =
   "image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,video/mp4,video/webm,video/quicktime,video/x-m4v,video/avi,video/mov,video/wmv,video/flv,video/mkv,video/3gpp,video/3gpp2,video/x-msvideo,video/x-matroska";
@@ -22,16 +25,29 @@ export default function Upload() {
   const [dragging, setDragging] = useState(false);
   const [progress, setProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
+  const [showTripDialog, setShowTripDialog] = useState(false);
+
+  const [searchParams] = useSearchParams();
+  const preselectedTripId = searchParams.get("tripId");
 
   const [form, setForm] = useState({
     caption: "",
     location: "",
     memoryDate: new Date().toISOString().slice(0, 10),
     tripName: import.meta.env.VITE_TRIP_NAME || "Gokarna 2026",
+    tripId: preselectedTripId || "",
   });
 
   const fileInput = useRef(null);
   const navigate = useNavigate();
+
+  const { data: trips } = useQuery({
+    queryKey: ["trips"],
+    queryFn: async () => {
+      const { data } = await api.get("/trips");
+      return data.trips;
+    },
+  });
 
   useEffect(
     () => () => files.forEach((file) => URL.revokeObjectURL(file.preview)),
@@ -613,7 +629,7 @@ outline-none
           </div>
 
           <button
-            disabled={uploading || !files.length}
+            disabled={uploading || !files.length || !form.tripId}
             className="
 mt-8
 
