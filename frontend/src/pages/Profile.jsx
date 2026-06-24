@@ -73,7 +73,7 @@ export default function Profile() {
       }
       setPreviewUrl(null);
 
-      toast.success("Profile updated ✨");
+      toast.success("Profile updated");
     } catch (error) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -405,7 +405,7 @@ mt-2
 text-gray-500
 "
           >
-            This is how your friends see you beside every memory 📸
+            This is how your friends see you beside every memory
           </p>
 
           <div

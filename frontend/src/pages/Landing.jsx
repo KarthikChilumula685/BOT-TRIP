@@ -14,7 +14,7 @@ import { useAuth } from "../context/AuthContext";
 const floatingPhotos = [
   {
     img: "/gang.jpg",
-    text: "The gang ❤️",
+    text: "The gang",
     style: "left-0 top-12 -rotate-6",
   },
   {
@@ -24,7 +24,7 @@ const floatingPhotos = [
   },
   {
     img: "/stay.jpg",
-    text: "Forever memories ✨",
+    text: "Forever memories",
     style: "bottom-0 left-1/4 rotate-3",
   },
 ];
@@ -309,7 +309,7 @@ export default function Landing() {
               text-gray-700
               "
             >
-              Best days 📸
+              Best days
             </p>
           </div>
 

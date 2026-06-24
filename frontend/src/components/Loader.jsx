@@ -115,7 +115,7 @@ text-xs
 text-gray-400
 "
         >
-          Finding little moments ✨
+          Finding little moments
         </p>
       </div>
     </div>

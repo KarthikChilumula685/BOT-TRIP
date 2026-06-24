@@ -51,7 +51,7 @@ export default function Register() {
 
       setCodeAccepted(true);
 
-      toast.success("Trip unlocked ✨");
+      toast.success("Trip unlocked");
     } catch (error) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -73,7 +73,7 @@ export default function Register() {
 
       saveSession(data);
 
-      toast.success("Welcome to the memories ❤️");
+      toast.success("Welcome to the memories");
 
       navigate(
         "/dashboard",
@@ -110,7 +110,7 @@ focus:ring-orange-200
   return (
     <AuthShell
       title={
-        codeAccepted ? "Create your memory profile" : "Unlock our album 🔐"
+        codeAccepted ? "Create your memory profile" : "Unlock our album"
       }
       subtitle={
         codeAccepted
@@ -194,7 +194,7 @@ transition
 disabled:opacity-60
 "
           >
-            {loading ? "Checking invitation..." : "Unlock Memories ✨"}
+            {loading ? "Checking invitation..." : "Unlock Memories"}
           </button>
         )}
 

@@ -118,7 +118,7 @@ export default function Gallery() {
         text-orange-500
         "
         >
-          Our little universe ✨
+          Our little universe
         </p>
 
         <h1
@@ -326,7 +326,7 @@ export default function Gallery() {
       ) : (
         <EmptyState
           title="No memories found"
-          description="Maybe that moment is still waiting to be uploaded 📸"
+          description="Maybe that moment is still waiting to be uploaded"
         />
       )}
 

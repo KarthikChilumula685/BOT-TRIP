@@ -435,7 +435,7 @@ masonry
       ) : (
         <EmptyState
           title="No journey yet"
-          description="Your timeline will appear as memories are added 📸"
+          description="Your timeline will appear as memories are added"
         />
       )}
 

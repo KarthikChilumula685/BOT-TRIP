@@ -158,7 +158,7 @@ export default function UserMemories() {
       ) : (
         <EmptyState
           title="No memories yet"
-          description={`${userName || "This user"} hasn't uploaded any memories yet. Check back later! 📸`}
+          description={`${userName || "This user"} hasn't uploaded any memories yet. Check back later!`}
         />
       )}
 

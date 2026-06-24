@@ -69,7 +69,7 @@ font-semibold
 text-orange-500
 "
           >
-            The people who made it special ✨
+            The people who made it special
           </p>
 
           <h1
@@ -300,7 +300,7 @@ text-blue-500
 
             <span>
               {users.length} {users.length === 1 ? "friend" : "friends"} sharing
-              this private memory book 📖
+              this private memory book
             </span>
           </div>
         </>

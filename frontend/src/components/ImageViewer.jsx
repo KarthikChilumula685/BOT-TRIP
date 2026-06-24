@@ -132,12 +132,12 @@ export default function ImageViewer({
   }
 
   const reactions = [
-    { type: "like", emoji: "👍", label: "Like" },
-    { type: "love", emoji: "❤️", label: "Love" },
-    { type: "laugh", emoji: "😂", label: "Laugh" },
-    { type: "wow", emoji: "😮", label: "Wow" },
-    { type: "sad", emoji: "😢", label: "Sad" },
-    { type: "fire", emoji: "🔥", label: "Fire" },
+    { type: "like", label: "Like" },
+    { type: "love", label: "Love" },
+    { type: "laugh", label: "Laugh" },
+    { type: "wow", label: "Wow" },
+    { type: "sad", label: "Sad" },
+    { type: "fire", label: "Fire" },
   ];
 
   async function handleDownload() {
@@ -787,7 +787,7 @@ export default function ImageViewer({
                 })
             ) : (
               <p className="text-center text-sm text-gray-400">
-                Start the conversation ✨
+                Start the conversation
               </p>
             )}
           </div>

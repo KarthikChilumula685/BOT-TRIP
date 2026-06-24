@@ -106,7 +106,7 @@ hover:scale-105
 transition
 "
         >
-          Add first memory 📸
+          Add first memory
         </Link>
       )}
     </div>

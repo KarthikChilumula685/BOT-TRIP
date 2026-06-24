@@ -39,7 +39,7 @@ export default function Login() {
 
       saveSession(data);
 
-      toast.success(`Welcome back, ${data.user.name.split(" ")[0]} ❤️`);
+      toast.success(`Welcome back, ${data.user.name.split(" ")[0]}`);
 
       navigate(
         location.state?.from?.pathname || "/dashboard",
@@ -58,7 +58,7 @@ export default function Login() {
   return (
     <AuthShell
       title="Welcome back"
-      subtitle="Your memories are waiting for you ✨"
+      subtitle="Your memories are waiting for you"
     >
       <form
         onSubmit={handleSubmit}
@@ -170,7 +170,7 @@ transition
 disabled:opacity-60
 "
         >
-          {loading ? "Opening memories..." : "Open Album ❤️"}
+          {loading ? "Opening memories..." : "Open Album"}
         </button>
       </form>
 
