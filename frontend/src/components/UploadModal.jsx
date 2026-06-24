@@ -23,31 +23,29 @@ export default function UploadModal({ isOpen, onClose, tripId, tripName }) {
   const [uploading, setUploading] = useState(false);
 
   const [form, setForm] = useState({
+    title: "",
     caption: "",
     location: "",
     memoryDate: new Date().toISOString().slice(0, 10),
-    tripName: tripName || "",
-    tripId: tripId || "",
   });
 
   const fileInput = useRef(null);
   const queryClient = useQueryClient();
 
-  // Reset form when modal opens/closes
+  // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
       setFiles([]);
       setProgress(0);
       setUploading(false);
       setForm({
+        title: "",
         caption: "",
         location: "",
         memoryDate: new Date().toISOString().slice(0, 10),
-        tripName: tripName || "",
-        tripId: tripId || "",
       });
     }
-  }, [isOpen, tripId, tripName]);
+  }, [isOpen]);
 
   // Cleanup file previews
   useEffect(
@@ -89,18 +87,28 @@ export default function UploadModal({ isOpen, onClose, tripId, tripName }) {
       return;
     }
 
+    if (!tripId) {
+      toast.error("Trip ID is required");
+      return;
+    }
+
     const payload = new FormData();
 
     files.forEach(({ file }) => payload.append("files", file));
 
-    Object.entries(form).forEach(([key, value]) => payload.append(key, value));
+    payload.append("tripId", tripId);
+    payload.append("tripName", tripName || "");
+    payload.append("title", form.title);
+    payload.append("caption", form.caption);
+    payload.append("location", form.location);
+    payload.append("memoryDate", form.memoryDate);
 
     setUploading(true);
     setProgress(0);
 
     try {
       const { data, status } = await api.post("/memories/upload", payload, {
-        timeout: 30 * 60 * 1000, // 30 minutes timeout for mobile uploads
+        timeout: 30 * 60 * 1000,
         onUploadProgress: (event) => {
           if (event.total) {
             const progressPercent = Math.round((event.loaded * 100) / event.total);
@@ -114,23 +122,21 @@ export default function UploadModal({ isOpen, onClose, tripId, tripName }) {
 
       // Invalidate relevant caches to trigger immediate UI updates
       await queryClient.invalidateQueries({ queryKey: ["trips"] });
-      
-      if (form.tripId) {
-        await queryClient.invalidateQueries({ queryKey: ["trip-memories", form.tripId] });
-        await queryClient.invalidateQueries({ queryKey: ["trip", form.tripId] });
-      }
-      
+      await queryClient.invalidateQueries({ queryKey: ["trip-memories", tripId] });
+      await queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
       await queryClient.invalidateQueries({ queryKey: ["memories"] });
 
       if (failedCount > 0) {
         // Partial success - show which files failed
         const failedNames = data.failedFiles?.map(f => f.fileName).join(", ") || "some files";
         toast.error(`${successCount} uploaded, ${failedCount} failed: ${failedNames}`);
-        // Keep modal open for retry
         setUploading(false);
       } else {
         // Full success - close modal automatically
-        toast.success(`${successCount} ${successCount === 1 ? 'file' : 'files'} uploaded successfully`);
+        const message = successCount === 1 
+          ? "Photo uploaded successfully" 
+          : `${successCount} files uploaded successfully`;
+        toast.success(message);
         setUploading(false);
         setFiles([]);
         onClose();
@@ -138,7 +144,6 @@ export default function UploadModal({ isOpen, onClose, tripId, tripName }) {
     } catch (error) {
       const errorMessage = getErrorMessage(error);
       
-      // Provide more specific error messages for common mobile upload issues
       if (errorMessage.includes("timeout") || errorMessage.includes("ETIMEDOUT") || error.code === 'ECONNABORTED') {
         toast.error(`Upload timed out. Try a smaller file or better connection.`);
       } else if (errorMessage.includes("network") || errorMessage.includes("ENET") || errorMessage.includes("connection lost")) {
@@ -151,7 +156,6 @@ export default function UploadModal({ isOpen, onClose, tripId, tripName }) {
         toast.error(errorMessage);
       }
       
-      // Keep modal open for retry
       setUploading(false);
     }
   }
@@ -288,6 +292,25 @@ export default function UploadModal({ isOpen, onClose, tripId, tripName }) {
 
               {/* Right: Form */}
               <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    value={form.title}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        title: e.target.value,
+                      })
+                    }
+                    placeholder="Summer vacation"
+                    disabled={uploading}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 px-3 text-gray-900 placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Caption

@@ -13,7 +13,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api, { getErrorMessage } from "../services/api";
 import TripDialog from "../components/TripDialog";
 
@@ -40,6 +40,7 @@ export default function Upload() {
 
   const fileInput = useRef(null);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: trips } = useQuery({
     queryKey: ["trips"],
@@ -152,8 +153,35 @@ export default function Upload() {
         timestamp: new Date().toISOString()
       });
 
-      const successCount = data.memories.length;
-      const failedCount = data.failedFiles?.length || (files.length - successCount);
+      const successCount = data.memories?.length || 0;
+      const failedCount = data.failedFiles?.length || 0;
+      
+      console.log("[UPLOAD DEBUG] Upload statistics", {
+        successCount,
+        failedCount,
+        totalFiles: files.length,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Invalidate relevant caches to trigger immediate UI updates
+      console.log("[UPLOAD DEBUG] Invalidating caches", {
+        timestamp: new Date().toISOString()
+      });
+      
+      // Invalidate trips cache to update collection statistics
+      await queryClient.invalidateQueries({ queryKey: ["trips"] });
+      
+      // Invalidate trip-memories cache if a specific trip was selected
+      if (form.tripId) {
+        await queryClient.invalidateQueries({ queryKey: ["trip-memories", form.tripId] });
+      }
+      
+      // Invalidate general memories cache
+      await queryClient.invalidateQueries({ queryKey: ["memories"] });
+      
+      console.log("[UPLOAD DEBUG] Cache invalidation complete", {
+        timestamp: new Date().toISOString()
+      });
       
       if (status === 207 || failedCount > 0) {
         // Partial success - show which files failed
@@ -173,10 +201,37 @@ export default function Upload() {
         toast.success(`${successCount} memories stored`);
       }
 
-      navigate("/gallery", {
-        replace: true,
-        state: { refresh: true },
+      // Navigate back to the appropriate page based on context
+      const from = searchParams.get("from") || "gallery";
+      const tripId = form.tripId;
+      
+      console.log("[UPLOAD DEBUG] Navigating after upload", {
+        from,
+        tripId,
+        timestamp: new Date().toISOString()
       });
+
+      if (from === "trip" && tripId) {
+        // Return to the trip collection
+        navigate(`/trip/${tripId}`, {
+          replace: true,
+        });
+      } else if (from === "dashboard") {
+        // Return to dashboard
+        navigate("/dashboard", {
+          replace: true,
+        });
+      } else if (from === "timeline") {
+        // Return to timeline
+        navigate("/timeline", {
+          replace: true,
+        });
+      } else {
+        // Default to gallery
+        navigate("/gallery", {
+          replace: true,
+        });
+      }
     } catch (error) {
       // Comprehensive error logging
       console.error("[UPLOAD DEBUG] Upload failed", {

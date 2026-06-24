@@ -1,12 +1,12 @@
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { useCallback, useState, useEffect } from "react";
 import { useSearchParams, useLocation } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import EmptyState from "../components/EmptyState";
 import ImageViewer from "../components/ImageViewer";
 import Loader from "../components/Loader";
 import MemoryCard from "../components/MemoryCard";
-import useMemories from "../hooks/useMemories";
 import api, { getErrorMessage } from "../services/api";
 
 export default function Gallery() {
@@ -18,22 +18,18 @@ export default function Gallery() {
   const [type, setType] = useState("");
   const [sort, setSort] = useState("newest");
   const [selected, setSelected] = useState(null);
-  const { memories, loading, updateMemory, removeMemory, reload } = useMemories({
-    search: query,
-    type,
-    sort,
-    uploader,
-    limit: 100,
+
+  const { data: memoriesData, isLoading, refetch } = useQuery({
+    queryKey: ["memories", query, type, sort, uploader],
+    queryFn: async () => {
+      const { data } = await api.get("/memories", {
+        params: { search: query, type, sort, uploader, limit: 100 }
+      });
+      return data;
+    },
   });
 
-  // Reload memories when navigating from upload with refresh state
-  useEffect(() => {
-    if (location.state?.refresh) {
-      reload();
-      // Clear the refresh state to prevent multiple reloads
-      window.history.replaceState({}, document.title);
-    }
-  }, [location.state?.refresh, reload]);
+  const memories = memoriesData?.memories || [];
 
   const closeViewer = useCallback(() => setSelected(null), []);
   const selectedIndex = memories.findIndex(
@@ -68,16 +64,15 @@ export default function Gallery() {
   }, [memories]);
 
   function handleUpdate(memory) {
-    updateMemory(memory);
     setSelected(memory);
-    // Reload memories to ensure proper sorting if date was changed
-    reload();
+    // Refetch to ensure proper sorting if date was changed
+    refetch();
   }
 
   async function handleLike(memory) {
     try {
       const { data } = await api.put(`/memories/${memory._id}/like`);
-      updateMemory({ ...memory, likes: data.likes });
+      setSelected({ ...memory, likes: data.likes });
     } catch (error) {
       toast.error(getErrorMessage(error));
     }
@@ -88,8 +83,8 @@ export default function Gallery() {
       return;
     try {
       await api.delete(`/memories/${memory._id}`);
-      removeMemory(memory._id);
       setSelected(null);
+      refetch();
       toast.success("Memory removed");
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -310,7 +305,7 @@ export default function Gallery() {
 
       {/* GALLERY */}
 
-      {loading ? (
+      {isLoading ? (
         <Loader />
       ) : memories.length ? (
         <div

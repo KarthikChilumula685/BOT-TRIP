@@ -13,7 +13,6 @@ import ImageViewer from "../components/ImageViewer";
 import Loader from "../components/Loader";
 import MemoryCard from "../components/MemoryCard";
 
-import useMemories from "../hooks/useMemories";
 import useProtectedMedia from "../hooks/useProtectedMedia";
 
 import api, { getErrorMessage } from "../services/api";
@@ -90,20 +89,22 @@ export default function Timeline() {
     }
   }, [trips, selectedTripId]);
 
-  const {
-    memories,
-
-    loading,
-
-    updateMemory,
-
-    removeMemory,
-    reload,
-  } = useMemories({
-    sort: "oldest",
-    limit: 100,
-    tripId: selectedTripId === "all" ? undefined : selectedTripId,
+  // Fetch memories using React Query
+  const { data: memoriesData, isLoading, refetch } = useQuery({
+    queryKey: ["memories", "oldest", selectedTripId === "all" ? undefined : selectedTripId],
+    queryFn: async () => {
+      const { data } = await api.get("/memories", {
+        params: {
+          sort: "oldest",
+          limit: 100,
+          tripId: selectedTripId === "all" ? undefined : selectedTripId
+        }
+      });
+      return data;
+    },
   });
+
+  const memories = memoriesData?.memories || [];
 
   const days = useMemo(() => {
     const groups = [];
@@ -143,12 +144,7 @@ export default function Timeline() {
   async function like(memory) {
     try {
       const { data } = await api.put(`/memories/${memory._id}/like`);
-
-      updateMemory({
-        ...memory,
-
-        likes: data.likes,
-      });
+      setSelected({ ...memory, likes: data.likes });
     } catch (error) {
       toast.error(getErrorMessage(error));
     }
@@ -159,20 +155,17 @@ export default function Timeline() {
 
     try {
       await api.delete(`/memories/${memory._id}`);
-
-      removeMemory(memory._id);
-
       setSelected(null);
+      refetch();
     } catch (error) {
       toast.error(getErrorMessage(error));
     }
   }
 
   function handleUpdate(memory) {
-    updateMemory(memory);
     setSelected(memory);
-    // Reload memories to ensure proper sorting if date was changed
-    reload();
+    // Refetch to ensure proper sorting if date was changed
+    refetch();
   }
 
   const selectedIndex = memories.findIndex(
@@ -222,7 +215,7 @@ font-bold
 text-gray-900
 "
         >
-          Trip Timeline
+          Trip And their Timelines
         </h1>
 
         <p
@@ -285,7 +278,7 @@ text-gray-600
         </div>
       )}
 
-      {loading ? (
+      {isLoading ? (
         <Loader />
       ) : days.length ? (
         <div
