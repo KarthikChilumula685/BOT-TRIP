@@ -586,7 +586,7 @@ export async function streamMedia(req, res, next) {
 
   try {
     const memory = await Memory.findById(req.params.id).select(
-      "fileId fileName mimeType fileSize"
+      "fileId fileName mimeType fileSize type"
     );
     
     if (!memory) {
@@ -598,7 +598,8 @@ export async function streamMedia(req, res, next) {
       memoryId,
       fileName: memory.fileName,
       mimeType: memory.mimeType,
-      fileSize: memory.fileSize
+      fileSize: memory.fileSize,
+      type: memory.type
     });
 
     const driveFile = await getDriveFileStream(memory.fileId, req.headers.range);
@@ -612,17 +613,46 @@ export async function streamMedia(req, res, next) {
 
     res.status(driveFile.status || (req.headers.range ? 206 : 200));
     
-    // Normalize MIME type for mobile compatibility
+    // Enhanced MIME type normalization for cross-browser compatibility
     let mimeType = memory.mimeType;
-    if (mimeType === 'video/quicktime') {
-      mimeType = 'video/mp4'; // iOS prefers mp4 MIME type
+    const userAgent = req.headers['user-agent'] || '';
+    
+    // Normalize video MIME types for better browser support
+    if (memory.type === 'video') {
+      // QuickTime/MOV files - normalize to mp4 for iOS
+      if (mimeType === 'video/quicktime' || mimeType === 'video/x-mov') {
+        mimeType = 'video/mp4';
+        console.log("[VIDEO DEBUG] Normalized QuickTime to MP4 for iOS compatibility");
+      }
+      // AVI files - some browsers prefer video/x-msvideo
+      else if (mimeType === 'video/avi' || mimeType === 'video/x-msvideo') {
+        // Keep as is for now, browsers have varying support
+        console.log("[VIDEO DEBUG] AVI format detected - browser support may vary");
+      }
+      // MKV files - normalize to mp4 for better compatibility
+      else if (mimeType === 'video/x-matroska' || mimeType === 'video/mkv') {
+        // MKV not natively supported by Safari/iOS
+        if (userAgent.includes('Safari') || userAgent.includes('iPhone') || userAgent.includes('iPad')) {
+          console.warn("[VIDEO DEBUG] MKV format not supported on Safari/iOS - playback may fail");
+        }
+      }
+      // WEBM - Safari doesn't support WEBM
+      else if (mimeType === 'video/webm') {
+        if (userAgent.includes('Safari') || userAgent.includes('iPhone') || userAgent.includes('iPad')) {
+          console.warn("[VIDEO DEBUG] WEBM format not supported on Safari/iOS - playback may fail");
+        }
+      }
     }
     
     console.log("[VIDEO DEBUG] Setting response headers", {
       originalMimeType: memory.mimeType,
       normalizedMimeType: mimeType,
       range: req.headers.range,
-      status: driveFile.status || (req.headers.range ? 206 : 200)
+      status: driveFile.status || (req.headers.range ? 206 : 200),
+      browser: userAgent.includes('Safari') ? 'Safari' : 
+              userAgent.includes('Chrome') ? 'Chrome' :
+              userAgent.includes('Firefox') ? 'Firefox' :
+              userAgent.includes('Edge') ? 'Edge' : 'Unknown'
     });
     
     res.setHeader("Content-Type", mimeType);
