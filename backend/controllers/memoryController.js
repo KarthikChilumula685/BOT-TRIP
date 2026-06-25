@@ -506,9 +506,28 @@ export async function removeReaction(req, res, next) {
 }
 
 export async function deleteMemory(req, res, next) {
+  const memoryId = req.params.id;
+  console.log("[DELETE DEBUG] Memory deletion started", {
+    memoryId,
+    userId: req.user._id,
+    timestamp: new Date().toISOString()
+  });
+
   try {
-    const memory = await Memory.findById(req.params.id);
-    if (!memory) return res.status(404).json({ message: "Memory not found" });
+    const memory = await Memory.findById(memoryId);
+    if (!memory) {
+      console.error("[DELETE DEBUG] Memory not found", { memoryId });
+      return res.status(404).json({ message: "Memory not found" });
+    }
+
+    console.log("[DELETE DEBUG] Memory found", {
+      memoryId,
+      fileId: memory.fileId,
+      fileName: memory.fileName,
+      uploadedBy: memory.uploadedBy,
+      tripId: memory.tripId,
+      type: memory.type
+    });
 
     const ownsMemory = memory.uploadedBy.equals(req.user._id);
     if (!ownsMemory && req.user.role !== "admin") {
@@ -519,18 +538,63 @@ export async function deleteMemory(req, res, next) {
     const tripId = memory.tripId;
     const memoryType = memory.type;
 
-    await deleteFromDrive(memory.fileId);
+    // Delete from Google Drive
+    console.log("[DELETE DEBUG] Deleting from Google Drive", {
+      memoryId,
+      fileId: memory.fileId
+    });
+    try {
+      await deleteFromDrive(memory.fileId);
+      console.log("[DELETE DEBUG] Successfully deleted from Google Drive", {
+        memoryId,
+        fileId: memory.fileId
+      });
+    } catch (driveError) {
+      console.error("[DELETE DEBUG] Failed to delete from Google Drive", {
+        memoryId,
+        fileId: memory.fileId,
+        error: driveError.message,
+        stack: driveError.stack
+      });
+      // Continue with memory deletion even if Drive deletion fails
+      // The memory record should be removed to prevent orphaned references
+    }
+
+    // Delete memory from database
+    console.log("[DELETE DEBUG] Deleting memory from database", { memoryId });
     await memory.deleteOne();
     console.log(`Memory ${memory._id} deleted by user ${req.user._id}`);
 
     // Update trip cover photo if this was a photo and belonged to a trip
     if (memoryType === "photo" && tripId) {
-      const { updateTripCoverPhoto } = await import("./tripController.js");
-      await updateTripCoverPhoto(tripId);
+      console.log("[DELETE DEBUG] Updating trip cover photo", {
+        memoryId,
+        tripId
+      });
+      try {
+        const { updateTripCoverPhoto } = await import("./tripController.js");
+        await updateTripCoverPhoto(tripId);
+        console.log("[DELETE DEBUG] Trip cover photo updated", { tripId });
+      } catch (coverError) {
+        console.error("[DELETE DEBUG] Failed to update trip cover photo", {
+          memoryId,
+          tripId,
+          error: coverError.message,
+          stack: coverError.stack
+        });
+        // Continue with response even if cover photo update fails
+      }
     }
 
     res.json({ message: "Memory removed" });
   } catch (error) {
+    console.error("[DELETE DEBUG] Memory deletion error", {
+      memoryId,
+      error: error.message,
+      stack: error.stack,
+      code: error.code,
+      timestamp: new Date().toISOString()
+    });
     next(error);
   }
 }
